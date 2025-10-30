@@ -1,0 +1,15 @@
+{
+  "require": ["./tests/mocha.setup.js"],
+  "timeout": 10000,
+  "exit": true,
+  "recursive": true,
+  "reporter": "spec",
+  "bail": false,
+  "color": true,
+  "spec": [
+    "tests/**/*.test.js"
+  ],
+  "ignore": [
+    "node_modules/**/*"
+  ]
+}

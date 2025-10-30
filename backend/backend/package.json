@@ -1,0 +1,58 @@
+{
+  "name": "shamba2shelf",
+  "version": "1.0.0",
+  "description": "A smart Agricultural Logistics and Market Access Platform.",
+  "main": "server.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --max-old-space-size=4096 node_modules/nodemon/bin/nodemon.js server.js",
+    "test": "NODE_ENV=test mocha --require ./tests/mocha.setup.js 'tests/**/*.test.js' --timeout 10000 --exit",
+    "test:watch": "npm run test -- --watch",
+    "test:coverage": "nyc npm run test",
+    "test:integration": "NODE_ENV=test mocha --require ./tests/mocha.setup.js 'tests/integration/**/*.test.js' --timeout 10000 --exit",
+    "test:unit": "NODE_ENV=test mocha --require ./tests/mocha.setup.js 'tests/unit/**/*.test.js' --timeout 10000 --exit",
+    "seed": "node scripts/seedDatabase.js",
+    "db:reset": "node scripts/resetDatabase.js",
+    "db:seed": "npm run db:reset && npm run seed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "shamba2shelf"
+  },
+  "keywords": [
+    "Node.js",
+    "MongoDB",
+    "GitHub",
+    "JWT"
+  ],
+  "author": "Erica Wangari",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.1",
+    "morgan": "^1.10.0",
+    "node-cron": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "chai": "^4.3.7",
+    "chai-http": "^4.4.0",
+    "jest": "^29.7.0",
+    "mocha": "^10.2.0",
+    "nodemon": "^3.0.1",
+    "nyc": "^15.1.0",
+    "sinon": "^15.2.0",
+    "supertest": "^6.3.3"
+  }
+}
