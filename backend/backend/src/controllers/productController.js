@@ -1,6 +1,8 @@
 const Product = require('../models/Product');
 const Farmer = require('../models/Farmer');
 const Order = require('../models/Order');
+const User = require('../models/User');
+const QRCode = require('qrcode');
 const AppError = require('../utils/AppError');
 const { asyncHandler } = require('../utils/asyncHandler');
 const mongoose = require('mongoose');
@@ -91,22 +93,30 @@ const getProduct = asyncHandler(async (req, res, next) => {
 });
 
 const createProduct = asyncHandler(async (req, res, next) => {
-  const farmer = await Farmer.findById(req.body.farmerId);
-  
+  const farmer = await User.findOne({ _id: req.body.farmerId, role: 'farmer' });
   if (!farmer) {
-    return next(new AppError('Farmer not found', 404));
+    return next(new AppError('Farmer not found or not a valid farmer', 404));
   }
 
-  if (!farmer.isVerified) {
+  if (farmer.isVerified === false) {
     return next(new AppError('Only verified farmers can create products', 403));
   }
 
-  if (req.user.role === 'farmer' && req.user.id !== req.body.farmerId) {
+  //  security check if logged-in user is a farmer
+  if (req.user && req.user.role === 'farmer' && req.user.id !== req.body.farmerId) {
     return next(new AppError('Farmers can only create products for themselves', 403));
   }
 
   const product = await Product.create(req.body);
 
+  //unique QR code 
+  const productUrl = `https://localhost:5173/product/${product._id}`;
+  const qrCodeDataUrl = await QRCode.toDataURL(productUrl);
+
+  product.qrCode = qrCodeDataUrl;
+  await product.save();
+
+  
   await product.populate({
     path: 'farmerId',
     select: 'firstName lastName location averageRating'
@@ -114,6 +124,7 @@ const createProduct = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({
     success: true,
+    message: 'Product created and QR code generated successfully',
     data: product
   });
 });

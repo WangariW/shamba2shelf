@@ -323,6 +323,22 @@ const validateLocation = [
   validateRequest
 ];
 
+const validateLocationUpdate = [
+  body('county')
+    .notEmpty()
+    .withMessage('County is required')
+    .isString()
+    .withMessage('County must be a string'),
+
+  body('town')
+    .notEmpty()
+    .withMessage('Town is required')
+    .isString()
+    .withMessage('Town must be a string'),
+
+  validateRequest
+];
+
 const validateCounty = [
   param('county')
     .notEmpty()
@@ -690,6 +706,7 @@ module.exports = {
   customValidators,
   validateFarmerUpdate,
   validateLocation,
+  validateLocationUpdate,
   validateCounty,
   validateProductData,
   validateProductCreate,

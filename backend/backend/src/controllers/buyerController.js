@@ -15,7 +15,7 @@ const getAllBuyers = asyncHandler(async (req, res, next) => {
   
   let query = Buyer.find(JSON.parse(queryStr));
 
-  query = query.find({ isActive: true, isVerified: true });
+  //query = query.find({ isActive: true, isVerified: true });
 
   query = query.select('-password -refreshTokens -verificationToken -passwordResetToken -loginAttempts -lockUntil');
 

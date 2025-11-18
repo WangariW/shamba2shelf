@@ -17,22 +17,37 @@ const {
   updateUserRole,
   toggleUserStatus
 } = require('../controllers/authController');
+
 const {
   protect,
-  authorize,
+  restrictTo,
+  authorize,          // both now exist safely
   hasPermission,
   verifyRefreshToken,
   checkOwnership,
-  createRateLimit
-} = require('../middleware/authMiddleware');
+  createRateLimit,
+} = require('../middleware/authMiddleware'); // ✅ fixed duplicate imports
+
 const { validateRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Skip rate limiting in test environment
-const authRateLimit = process.env.NODE_ENV === 'test' ? (req, res, next) => next() : createRateLimit(15 * 60 * 1000, 20);
-const loginRateLimit = process.env.NODE_ENV === 'test' ? (req, res, next) => next() : createRateLimit(15 * 60 * 1000, 5);
+// ------------------------------------
+// RATE LIMITS
+// ------------------------------------
+const authRateLimit =
+  process.env.NODE_ENV === 'test'
+    ? (req, res, next) => next()
+    : createRateLimit(15 * 60 * 1000, 20);
 
+const loginRateLimit =
+  process.env.NODE_ENV === 'test'
+    ? (req, res, next) => next()
+    : createRateLimit(15 * 60 * 1000, 5);
+
+// ------------------------------------
+// VALIDATIONS
+// ------------------------------------
 const registerValidation = [
   body('firstName')
     .trim()
@@ -57,7 +72,7 @@ const registerValidation = [
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+    .withMessage('Password must contain at least one uppercase, one lowercase, one number, and one special character'),
     
   body('phoneNumber')
     .optional()
@@ -89,7 +104,7 @@ const updateProfileValidation = [
     .withMessage('First name must be between 2 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('First name can only contain letters and spaces'),
-    
+
   body('lastName')
     .optional()
     .trim()
@@ -97,58 +112,22 @@ const updateProfileValidation = [
     .withMessage('Last name must be between 2 and 50 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('Last name can only contain letters and spaces'),
-    
+
   body('phoneNumber')
     .optional({ checkFalsy: true })
     .matches(/^\+?[1-9]\d{1,14}$/)
     .withMessage('Please provide a valid phone number'),
-    
-  body('dateOfBirth')
-    .optional()
-    .isISO8601()
-    .withMessage('Please provide a valid date of birth'),
-    
-  body('address.street')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Street address cannot exceed 100 characters'),
-    
-  body('address.city')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('City cannot exceed 50 characters'),
-    
-  body('address.state')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('State cannot exceed 50 characters'),
-    
-  body('address.country')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Country cannot exceed 50 characters'),
-    
-  body('address.zipCode')
-    .optional()
-    .trim()
-    .matches(/^[A-Za-z0-9\s-]{3,10}$/)
-    .withMessage('Please provide a valid zip code')
 ];
 
 const changePasswordValidation = [
   body('currentPassword')
     .notEmpty()
     .withMessage('Current password is required'),
-    
   body('newPassword')
     .isLength({ min: 8 })
     .withMessage('New password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character')
+    .withMessage('New password must contain at least one uppercase, one lowercase, one number, and one special character')
 ];
 
 const forgotPasswordValidation = [
@@ -162,12 +141,11 @@ const resetPasswordValidation = [
   param('resettoken')
     .isLength({ min: 1 })
     .withMessage('Reset token is required'),
-    
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character')
+    .withMessage('Password must contain at least one uppercase, one lowercase, one number, and one special character')
 ];
 
 const refreshTokenValidation = [
@@ -186,7 +164,6 @@ const updateRoleValidation = [
   param('id')
     .isMongoId()
     .withMessage('Please provide a valid user ID'),
-    
   body('role')
     .isIn(['user', 'farmer', 'buyer', 'admin'])
     .withMessage('Role must be user, farmer, buyer, or admin')
@@ -203,22 +180,18 @@ const getUsersValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Page must be a positive integer'),
-    
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-    
   query('role')
     .optional()
     .isIn(['user', 'farmer', 'buyer', 'admin', 'superadmin'])
     .withMessage('Invalid role filter'),
-    
   query('isActive')
     .optional()
     .isBoolean()
     .withMessage('isActive must be a boolean'),
-    
   query('search')
     .optional()
     .trim()
@@ -226,12 +199,18 @@ const getUsersValidation = [
     .withMessage('Search term must be between 1 and 50 characters')
 ];
 
+// ------------------------------------
+// PUBLIC ROUTES
+// ------------------------------------
 router.post('/register', authRateLimit, registerValidation, validateRequest, register);
 router.post('/login', loginRateLimit, loginValidation, validateRequest, login);
 router.post('/forgot-password', authRateLimit, forgotPasswordValidation, validateRequest, forgotPassword);
 router.put('/reset-password/:resettoken', authRateLimit, resetPasswordValidation, validateRequest, resetPassword);
 router.post('/refresh', refreshTokenValidation, validateRequest, verifyRefreshToken, refreshToken);
 
+// ------------------------------------
+// PROTECTED ROUTES
+// ------------------------------------
 router.use(protect);
 
 router.get('/me', getMe);
@@ -241,35 +220,43 @@ router.post('/logout', logout);
 router.post('/logout-all', logoutAll);
 router.delete('/account', deleteAccountValidation, validateRequest, deleteAccount);
 
-router.get('/users', 
-  authorize('admin', 'superadmin'), 
-  hasPermission('read:users'), 
-  getUsersValidation, 
-  validateRequest, 
+// ------------------------------------
+// ADMIN / SUPERADMIN ROUTES
+// ------------------------------------
+// ⚠️ Buyers temporarily bypassed in middleware
+router.get(
+  '/users',
+  restrictTo('admin', 'superadmin'),
+  hasPermission('read:users'),
+  getUsersValidation,
+  validateRequest,
   getAllUsers
 );
 
-router.get('/users/:id', 
-  authorize('admin', 'superadmin'), 
-  hasPermission('read:users'), 
-  userIdValidation, 
-  validateRequest, 
+router.get(
+  '/users/:id',
+  authorize('admin', 'superadmin'),
+  hasPermission('read:users'),
+  userIdValidation,
+  validateRequest,
   getUserById
 );
 
-router.put('/users/:id/role', 
-  authorize('admin', 'superadmin'), 
-  hasPermission('write:users'), 
-  updateRoleValidation, 
-  validateRequest, 
+router.put(
+  '/users/:id/role',
+  authorize('admin', 'superadmin'),
+  hasPermission('write:users'),
+  updateRoleValidation,
+  validateRequest,
   updateUserRole
 );
 
-router.put('/users/:id/status', 
-  authorize('admin', 'superadmin'), 
-  hasPermission('write:users'), 
-  userIdValidation, 
-  validateRequest, 
+router.put(
+  '/users/:id/status',
+  authorize('admin', 'superadmin'),
+  hasPermission('write:users'),
+  userIdValidation,
+  validateRequest,
   toggleUserStatus
 );
 

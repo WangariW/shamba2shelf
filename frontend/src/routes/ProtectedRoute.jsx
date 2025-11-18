@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
 
@@ -8,9 +8,8 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Call backend to verify the cookie session
         await axios.get("http://localhost:5000/api/auth/me", {
-          withCredentials: true, // important for cookies
+          withCredentials: true,
         });
         setIsAuth(true);
       } catch (err) {
@@ -22,11 +21,13 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (isAuth === null) {
-    // While checking (optional loader)
-    return <p>Checking session...</p>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Checking session...</p>
+      </div>
+    );
   }
 
-  // If authenticated, render the requested page
   return isAuth ? children : <Navigate to="/login" replace />;
 };
 

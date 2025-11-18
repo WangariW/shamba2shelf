@@ -54,6 +54,9 @@ const userSchema = new mongoose.Schema({
     country: String,
     zipCode: String
   },
+
+  county: { type: String, default: null },
+  town: { type: String, default: null },
   
   role: {
     type: String,

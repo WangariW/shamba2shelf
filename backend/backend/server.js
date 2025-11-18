@@ -5,11 +5,11 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 
-// Import configurations and utilities
+
 const connectDB = require('./src/config/database');
 const { errorHandler, notFound } = require('./src/middleware/errorMiddleware');
 
-// Import routes
+
 const authRoutes = require('./src/routes/authRoutes');
 const farmerRoutes = require('./src/routes/farmers');
 const productRoutes = require('./src/routes/products');
@@ -18,18 +18,18 @@ const buyerRoutes = require('./src/routes/buyers');
 const logisticsRoutes = require('./src/routes/logistics');
 const analyticsRoutes = require('./src/routes/analytics');
 
-// Load environment variables
+
 dotenv.config();
 
-// Create Express app
+
 const app = express();
 
-// Connect to MongoDB (skip in test mode when SKIP_DB_CONNECTION is set)
+
 if (!process.env.SKIP_DB_CONNECTION) {
- connectDB();
+  connectDB();
 }
 
-// Middleware
+
 app.use(helmet()); // Security headers
 
 const allowedOrigins = [
@@ -59,21 +59,21 @@ app.use(express.json({ limit: '10mb' })); // Body parser
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser()); // Cookie parser
 
-// Health check endpoint
+//  Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Shamba2Shelf API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
-//Default homepage
+
 app.get('/', (req, res) => {
   res.send(`
     <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-      <h1>🌾 Welcome to Shamba2Shelf API</h1>
+      <h1> Welcome to Shamba2Shelf API</h1>
       <p>Your backend server is running successfully.</p>
       <p>Visit <code>/api/health</code> to check server status.</p>
       <p>Environment: <strong>${process.env.NODE_ENV || 'development'}</strong></p>
@@ -81,7 +81,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/products', productRoutes);
@@ -90,39 +89,30 @@ app.use('/api/buyers', buyerRoutes);
 app.use('/api/v1/logistics', logisticsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 
-// 404 Handler
-app.use(notFound);
 
-// Error Handler
+app.use(notFound);
 app.use(errorHandler);
 
-// Start server
+
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-  console.log(`❌ Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => {
-    process.exit(1);
-  });
+  console.log(` Error: ${err.message}`);
+  server.close(() => process.exit(1));
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.log(`❌ Uncaught Exception: ${err.message}`);
+  console.log(` Uncaught Exception: ${err.message}`);
   process.exit(1);
 });
 
-// Graceful shutdown
+
 process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('💥 Process terminated');
-  });
+  console.log(' SIGTERM received, shutting down gracefully');
+  server.close(() => console.log(' Process terminated'));
 });
 
 module.exports = app;

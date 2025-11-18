@@ -18,6 +18,7 @@ const getClientInfo = (req) => ({
   userAgent: req.get('User-Agent') || 'unknown'
 });
 
+
 const setTokenCookie = (res, token) => {
   const options = {
     expires: new Date(Date.now() + config.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
@@ -27,6 +28,15 @@ const setTokenCookie = (res, token) => {
   };
   
   res.cookie('token', token, options);
+};
+
+const generateTokens = (user) => { 
+  const accessToken = jwt.sign( { id: user._id, email: user.email }, process.env.JWT_SECRET, { 
+    expiresIn: process.env.JWT_EXPIRE || "15m" } ); 
+    
+const refreshToken = jwt.sign( { id: user._id }, process.env.JWT_REFRESH_SECRET, { 
+  expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d" } ); 
+  return { accessToken, refreshToken }; 
 };
 
 const sendTokenResponse = async (user, statusCode, res, message = 'Success') => {
@@ -125,23 +135,59 @@ const logoutAll = asyncHandler(async (req, res, next) => {
 });
 
 const refreshToken = asyncHandler(async (req, res, next) => {
-  const user = req.user;
-  const oldRefreshToken = req.refreshToken;
-  
-  const accessToken = user.generateAccessToken();
-  const newRefreshToken = user.generateRefreshToken();
-  
-  await user.removeRefreshToken(oldRefreshToken);
-  const { ipAddress, userAgent } = getClientInfo(req);
-  await user.addRefreshToken(newRefreshToken, userAgent, ipAddress);
-  
-  setTokenCookie(res, accessToken);
-  
-  res.status(200).json(formatResponse(true, {
-    accessToken,
-    refreshToken: newRefreshToken,
-    expiresIn: config.JWT_EXPIRE
-  }, 'Token refreshed successfully'));
+  try {
+    // 1️⃣ Extract refresh token from cookie or request body
+    const refreshToken =
+      req.cookies?.refreshToken || req.body?.refreshToken || req.headers["x-refresh-token"];
+
+    if (!refreshToken) {
+      return next(new AppError("No refresh token provided", 401));
+    }
+
+    // 2️⃣ Verify the refresh token validity
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    } catch (err) {
+      return next(new AppError("Invalid or expired refresh token", 403));
+    }
+
+    // 3️⃣ Find user associated with the refresh token
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return next(new AppError("User not found", 404));
+    }
+
+    // 4️⃣ (Optional) Check if this refresh token exists in user's record (for security)
+    const isTokenValid = await user.hasRefreshToken(refreshToken);
+    if (!isTokenValid) {
+      return next(new AppError("Refresh token not recognized", 403));
+    }
+
+    // 5️⃣ Generate new tokens
+    const newAccessToken = user.generateAccessToken();
+    const newRefreshToken = user.generateRefreshToken();
+
+    // 6️⃣ Replace the old refresh token with the new one in DB
+    await user.removeRefreshToken(refreshToken);
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await user.addRefreshToken(newRefreshToken, userAgent, ipAddress);
+
+    // 7️⃣ Set the new access token cookie
+    setTokenCookie(res, newAccessToken);
+
+    // 8️⃣ Respond exactly as Axios expects
+    res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      expiresIn: config.JWT_EXPIRE,
+      message: "Token refreshed successfully",
+    });
+  } catch (error) {
+    console.error("Refresh token error:", error.message);
+    return next(new AppError("Failed to refresh token", 500));
+  }
 });
 
 const getMe = asyncHandler(async (req, res, next) => {

@@ -33,38 +33,27 @@ const farmerSchema = new mongoose.Schema({
 
   county: {
     type: String,
-    required: [true, 'County is required'],
+    required: false,
     enum: {
       values: ['Nyeri', 'Kiambu', 'Murang\'a', 'Kirinyaga', 'Embu', 'Meru', 'Machakos', 'Nakuru'],
       message: 'County must be one of the major coffee growing regions'
     }
   },
-  location: {
-    latitude: {
-      type: Number,
-      required: [true, 'Farm latitude is required'],
-      min: [-1.7, 'Latitude must be within Kenya boundaries'],
-      max: [5.0, 'Latitude must be within Kenya boundaries']
-    },
-    longitude: {
-      type: Number,
-      required: [true, 'Farm longitude is required'],
-      min: [33.9, 'Longitude must be within Kenya boundaries'],
-      max: [41.9, 'Longitude must be within Kenya boundaries']
-    }
+  nearestTown: {
+  type: String,
+  required: false
   },
 
-  brandStory: {
+  location: {
+    county: {type: String, default: null},
+    town: {type: String, default: null},
+  },
+
+  pickupPoint: {
     type: String,
-    maxlength: [1000, 'Brand story cannot exceed 1000 characters'],
-    default: ''
+    default: null
   },
-  farmSize: {
-    type: Number,
-    required: [true, 'Farm size is required'],
-    min: [0.1, 'Farm size must be at least 0.1 acres'],
-    max: [500, 'Farm size cannot exceed 500 acres for smallholder classification']
-  },
+
   altitudeRange: {
     min: {
       type: Number,
@@ -78,19 +67,6 @@ const farmerSchema = new mongoose.Schema({
     }
   },
 
-  certifications: [{
-    type: String,
-    enum: [
-      'Fair Trade',
-      'Organic',
-      'Rainforest Alliance',
-      'UTZ Certified',
-      'Bird Friendly',
-      'Smithsonian Migratory Bird Center',
-      'Kenya Coffee Quality Certification',
-      'Direct Trade'
-    ]
-  }],
   varietiesGrown: [{
     type: String,
     enum: [
@@ -149,10 +125,7 @@ const farmerSchema = new mongoose.Schema({
       type: String,
       match: [/^[0-9]{8}$/, 'National ID must be 8 digits']
     },
-    farmCertificate: {
-      type: String,
-      default: ''
-    },
+
     bankStatement: {
       type: String,
       default: ''
@@ -182,12 +155,7 @@ const farmerSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Total sales cannot be negative']
   },
-  averageRating: {
-    type: Number,
-    default: 0,
-    min: [0, 'Rating cannot be negative'],
-    max: [5, 'Rating cannot exceed 5']
-  },
+ 
   totalReviews: {
     type: Number,
     default: 0,
@@ -219,8 +187,8 @@ const farmerSchema = new mongoose.Schema({
   communicationPreferences: {
     language: {
       type: String,
-      enum: ['English', 'Swahili', 'Kikuyu', 'Embu', 'Meru'],
-      default: 'English'
+      enum: ['English', 'Swahili',],
+      default: ['English', 'Swahili'] 
     },
     notificationMethods: [{
       type: String,
