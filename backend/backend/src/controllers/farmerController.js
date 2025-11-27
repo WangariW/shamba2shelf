@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const townCoordinates = require("../config/townCoordinates");
 const AppError = require('../utils/AppError');
 const { asyncHandler } = require('../utils/asyncHandler');
 const mongoose = require('mongoose');
@@ -209,11 +210,43 @@ const getFarmerDashboard = asyncHandler(async (req, res, next) => {
 const updateLocation = asyncHandler(async (req, res, next) => {
   const { county, town, pickupPoint } = req.body;
 
+  
+  if (!county || !town) {
+    return next(new AppError("County and town are required", 400));
+  }
+
+  // Validate county exists
+  if (!townCoordinates[county]) {
+    return next(new AppError(`Invalid county selected: ${county}`, 400));
+  }
+
+  // Validate town exists under that county
+  const townData = townCoordinates[county][town];
+  if (!townData) {
+    return next(
+      new AppError(
+        `Town "${town}" is not mapped under county "${county}".`,
+        400
+      )
+    );
+  }
+
+  
+  const { lat, lng } = townData;
+
+  
   const user = await User.findByIdAndUpdate(
     req.params.id,
-    { county, town, pickupPoint },
+    {
+      county,
+      town,
+      pickupPoint,
+      latitude: lat,
+      longitude: lng,
+      location: { county, town }
+    },
     { new: true, runValidators: true }
-  ).select("name email county town pickupPoint role");
+  );
 
   if (!user) return next(new AppError("Farmer not found", 404));
 

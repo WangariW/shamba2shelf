@@ -18,6 +18,9 @@ const {
   validateStockUpdate
 } = require('../middleware/validation');
 
+
+const upload = require('../middleware/uploadMiddleware');
+
 const router = express.Router();
 
 router.get('/', getAllProducts);
@@ -26,13 +29,25 @@ router.get('/stats', getProductStats);
 router.get('/farmer/:farmerId', getFarmerProducts);
 router.get('/:id', getProduct);
 
-// Temporarily disable auth to allow open testing
-// router.use(protect);
+// router.use(protect); // disabled for testing
 
-// Open routes for testing only
-router.post('/', validateProductCreate, createProduct);
-router.put('/:id', validateProductUpdate, updateProduct);
+router.post(
+  '/',
+  upload.single("image"),      
+  validateProductCreate,
+  createProduct
+);
+
+router.put(
+  '/:id',
+  upload.single("image"),      
+  validateProductUpdate,
+  updateProduct
+);
+
 router.put('/:id/stock', validateStockUpdate, updateProductStock);
+
+
 router.delete('/:id', deleteProduct);
 
 module.exports = router;

@@ -58,6 +58,16 @@ const userSchema = new mongoose.Schema({
   county: { type: String, default: null },
   town: { type: String, default: null },
   
+  latitude: {
+  type: Number,
+  default: null
+  },
+
+  longitude: {
+  type: Number,
+  default: null
+  },
+
   role: {
     type: String,
     enum: ['user', 'farmer', 'buyer', 'admin', 'superadmin'],

@@ -13,6 +13,8 @@ import OrderReview from "./pages/Buyer/OrderReview";
 import OrderSuccess from "./pages/Buyer/OrderSuccess";
 import Navbar from "./components/Navbar";
 import FarmerProfile from "./pages/Farmer/FarmerProfile";
+import RouteOptimization from "./pages/Buyer/RouteOptimization";
+
 
 export default function App() {
   return (
@@ -31,6 +33,7 @@ export default function App() {
           <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
           <Route path="/buyer/marketplace" element={<Marketplace />} />
           <Route path="/trace/:id" element={<TracePage />} />
+          <Route path="/route-optimization" element={<RouteOptimization />} />
           <Route path="/farmer/profile" element={<FarmerProfile />} />
           <Route path="/traceability" element={<Traceability />} />
           <Route path="/buyer/checkout" element={<Checkout />} />

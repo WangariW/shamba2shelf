@@ -4,7 +4,7 @@ const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // temporary folder at project root
+    cb(null, path.join(__dirname, "../../uploads/"));  
   },
   filename: (req, file, cb) => {
     cb(

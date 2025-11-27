@@ -49,6 +49,15 @@ const farmerSchema = new mongoose.Schema({
     town: {type: String, default: null},
   },
 
+  latitude: {
+    type: Number,
+    default: null
+  },
+  longitude: {
+    type: Number,
+    default: null
+  },
+
   pickupPoint: {
     type: String,
     default: null

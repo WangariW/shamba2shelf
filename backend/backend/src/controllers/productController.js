@@ -136,7 +136,7 @@ const updateProduct = asyncHandler(async (req, res, next) => {
     return next(new AppError('Product not found', 404));
   }
 
-  if (req.user.role === 'farmer' && req.user.id !== product.farmerId.toString()) {
+  if (req.user && req.user.role === 'farmer' && req.user.id !== product.farmerId.toString()) {
     return next(new AppError('Not authorized to update this product', 403));
   }
 
@@ -164,7 +164,7 @@ const deleteProduct = asyncHandler(async (req, res, next) => {
     return next(new AppError('Product not found', 404));
   }
 
-  if (req.user.role === 'farmer' && req.user.id !== product.farmerId.toString()) {
+  if (req.user && req.user.role === 'farmer' && req.user.id !== product.farmerId.toString()) {
     return next(new AppError('Not authorized to delete this product', 403));
   }
 
@@ -398,9 +398,9 @@ const getFarmerProducts = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid farmer ID', 400));
   }
 
-  const farmer = await Farmer.findById(farmerId);
+  const farmer = await User.findOne({ _id: farmerId, role: 'farmer' });
   if (!farmer) {
-    return next(new AppError('Farmer not found', 404));
+    return next(new AppError('Farmer not found or not a valid farmer', 404));
   }
 
   const queryObj = { ...req.query };

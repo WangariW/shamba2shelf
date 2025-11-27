@@ -401,9 +401,18 @@ const validateProductData = [
 
   body('flavorNotes')
     .optional()
-    .isArray()
-    .withMessage('Flavor notes must be an array')
-    .custom(customValidators.uniqueArray),
+    .custom((value, { req } ) => {
+      const notes = req.body.flavorNotes;
+
+      if (!notes) return true;
+      if (!Array.isArray(notes)) return true;
+      if (typeof notes === 'string') {
+        req.body.flavorNotes = [notes];
+        return true;
+  
+      }
+      throw new Error('Flavor notes must be an array or a comma-separated string');
+    }),
 
   body('flavorNotes.*')
     .optional()

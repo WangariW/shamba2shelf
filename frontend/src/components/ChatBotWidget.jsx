@@ -45,7 +45,7 @@ export default function ChatBotWidget({ userRole = "buyer" }) {
     }
   }, [storageKey]);
 
-  // Save chat history whenever messages change
+  
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(messages));

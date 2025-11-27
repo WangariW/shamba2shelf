@@ -17,7 +17,7 @@ const orderRoutes = require('./src/routes/orders');
 const buyerRoutes = require('./src/routes/buyers');
 const logisticsRoutes = require('./src/routes/logistics');
 const analyticsRoutes = require('./src/routes/analytics');
-
+const routeOptimizationRoutes = require("./src/routes/routeOptimization");
 
 dotenv.config();
 
@@ -30,7 +30,7 @@ if (!process.env.SKIP_DB_CONNECTION) {
 }
 
 
-app.use(helmet()); // Security headers
+app.use(helmet()); 
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -54,12 +54,11 @@ app.use(
   })
 );
 
-app.use(morgan('combined')); // Logging
-app.use(express.json({ limit: '10mb' })); // Body parser
+app.use(morgan('combined')); 
+app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser()); // Cookie parser
+app.use(cookieParser()); 
 
-//  Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
@@ -88,7 +87,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/buyers', buyerRoutes);
 app.use('/api/v1/logistics', logisticsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
-
+app.use("/api/route", routeOptimizationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
