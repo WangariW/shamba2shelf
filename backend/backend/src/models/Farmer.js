@@ -35,16 +35,30 @@ const farmerSchema = new mongoose.Schema({
     type: String,
     required: false,
     enum: {
-      values: ['Nyeri', 'Kiambu', 'Murang\'a', 'Kirinyaga', 'Embu', 'Meru', 'Machakos', 'Nakuru'],
+      values: ['Nyeri', 'Kiambu', "Murang'a", 'Kirinyaga', 'Embu', 'Meru', 'Muranga'],
       message: 'County must be one of the major coffee growing regions'
     }
   },
   nearestTown: {
-  type: String,
-  required: false
+    type: String,
+    required: false
   },
 
+  // FIXED: Changed 'location' to GeoJSON Point structure for 2dsphere index
   location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [36.817223, -1.286389] // Nairobi coordinates
+    }
+  },
+
+  // NEW: Field to hold administrative location data
+  administrativeLocation: {
     county: {type: String, default: null},
     town: {type: String, default: null},
   },
@@ -164,7 +178,7 @@ const farmerSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Total sales cannot be negative']
   },
- 
+
   totalReviews: {
     type: Number,
     default: 0,
@@ -193,12 +207,12 @@ const farmerSchema = new mongoose.Schema({
     ]
   }],
 
+  // FIXED: Changed language to be an Array of Strings with a valid default array
   communicationPreferences: {
-    language: {
+    language: [{
       type: String,
       enum: ['English', 'Swahili',],
-      default: ['English', 'Swahili'] 
-    },
+    }],
     notificationMethods: [{
       type: String,
       enum: ['email', 'sms', 'whatsapp', 'push'],
@@ -243,7 +257,7 @@ const farmerSchema = new mongoose.Schema({
 // Indexes for performance (email index is automatically created due to unique: true)
 farmerSchema.index({ phone: 1 });
 farmerSchema.index({ county: 1 });
-farmerSchema.index({ location: '2dsphere' });
+farmerSchema.index({ location: '2dsphere' }); // This now works correctly with the GeoJSON structure
 farmerSchema.index({ isVerified: 1, isActive: 1 });
 farmerSchema.index({ createdAt: -1 });
 farmerSchema.index({ averageRating: -1 });
@@ -253,9 +267,13 @@ farmerSchema.virtual('isLocked').get(function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-// Pre-save middleware to hash password
+// Pre-save middleware to hash password (Includes the check for undefined/null password)
 farmerSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
+  
+  if (!this.password || typeof this.password !== 'string' || this.password.length === 0) {
+    return next();
+  }
 
   try {
     const salt = await bcrypt.genSalt(12);
@@ -312,7 +330,7 @@ farmerSchema.methods.incLoginAttempts = function() {
   const updates = { $inc: { loginAttempts: 1 } };
   
   if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
   }
   
   return this.updateOne(updates);

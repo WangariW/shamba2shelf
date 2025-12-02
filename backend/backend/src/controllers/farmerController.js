@@ -166,7 +166,7 @@ const getTopRatedFarmers = asyncHandler(async (req, res, next) => {
   const farmers = await User.find({ role: "farmer" })
     .sort("-averageRating")
     .limit(10)
-    .select("name email county town pickupPoint role averageRating");
+    .select("firstName lastName email county town pickupPoint role averageRating profilePicture");
 
   res.status(200).json({
     success: true,

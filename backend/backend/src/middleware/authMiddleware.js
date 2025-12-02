@@ -1,22 +1,22 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Farmer = require("../models/Farmer");
+const Buyer = require("../models/Buyer");
 const config = require("../config/config");
 const { asyncHandler } = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
-// ------------------------------
-// PROTECT middleware
-// ------------------------------
+
 const protect = async (req, res, next) => {
   try {
     let token;
 
-    // Check Authorization header
+    //Authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    // Fallback: check cookie
+    // check cookie
     if (!token && req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
@@ -26,12 +26,31 @@ const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
+    
+    
+    let user = await User.findById(decoded.id).select("-password");
+    
+    if (!user) {
+      user = await Farmer.findById(decoded.id).select("-password");
+    }
+    
+    if (!user) {
+      user = await Buyer.findById(decoded.id).select("-password");
+    }
 
-    if (!req.user) {
+    if (!user) {
       return next(new AppError("User not found", 404));
     }
 
+    if (!user.role) {
+      if (user.constructor.modelName === 'Buyer') {
+        user.role = 'buyer';
+      } else if (user.constructor.modelName === 'Farmer') {
+        user.role = 'farmer';
+      }
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     console.error("Auth middleware error:", err.message);
@@ -39,9 +58,7 @@ const protect = async (req, res, next) => {
   }
 };
 
-// ------------------------------
-//  ROLE-BASED ACCESS CONTROL
-// ------------------------------
+
 const authorize = (...roles) => {
   return (req, res, next) => {
     // ⚠️ TEMPORARY: allow buyers full access
@@ -64,12 +81,9 @@ const authorize = (...roles) => {
   };
 };
 
-// Alias (for consistency with routes using restrictTo)
 const restrictTo = authorize;
 
-// ------------------------------
-// PERMISSION CHECK
-// ------------------------------
+
 const hasPermission = (...permissions) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -78,13 +92,13 @@ const hasPermission = (...permissions) => {
 
     if (
       req.user.role === "superadmin" ||
-      req.user.permissions.includes("admin:all")
+      (req.user.permissions && req.user.permissions.includes("admin:all"))
     ) {
       return next();
     }
 
     const hasRequiredPermission = permissions.some((permission) =>
-      req.user.permissions.includes(permission)
+      req.user.permissions && req.user.permissions.includes(permission)
     );
 
     if (!hasRequiredPermission) {
@@ -97,9 +111,7 @@ const hasPermission = (...permissions) => {
   };
 };
 
-// ------------------------------
-//  OPTIONAL AUTH
-// ------------------------------
+
 const optionalAuth = asyncHandler(async (req, res, next) => {
   let token;
 
@@ -115,11 +127,28 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET);
-      const user = await User.findById(decoded.id).select("-password");
+      
+      // Try all three models
+      let user = await User.findById(decoded.id).select("-password");
+      if (!user) user = await Farmer.findById(decoded.id).select("-password");
+      if (!user) user = await Buyer.findById(decoded.id).select("-password");
 
-      if (user && user.isActive && !user.changedPasswordAfter(decoded.iat)) {
+      if (user && user.isActive) {
+        // Add role if not present
+        if (!user.role) {
+          if (user.constructor.modelName === 'Buyer') {
+            user.role = 'buyer';
+          } else if (user.constructor.modelName === 'Farmer') {
+            user.role = 'farmer';
+          }
+        }
+        
         req.user = user;
-        user.updateLastActivity();
+        
+        // Update last activity if method exists
+        if (typeof user.updateLastActivity === 'function') {
+          user.updateLastActivity();
+        }
       }
     } catch (error) {
       console.log("Optional auth failed:", error.message);
@@ -129,9 +158,9 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   next();
 });
 
-// ------------------------------
+
 //  VERIFY REFRESH TOKEN
-// ------------------------------
+
 const verifyRefreshToken = asyncHandler(async (req, res, next) => {
   const { refreshToken } = req.body;
 
@@ -141,22 +170,39 @@ const verifyRefreshToken = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(refreshToken, config.JWT_REFRESH_SECRET);
-    const user = await User.findById(decoded.id);
+    
+    // Try all three models
+    let user = await User.findById(decoded.id);
+    if (!user) user = await Farmer.findById(decoded.id);
+    if (!user) user = await Buyer.findById(decoded.id);
 
     if (!user) {
       return next(new AppError("Invalid refresh token", 401));
     }
 
-    const tokenExists = user.refreshTokens.some(
-      (rt) => rt.token === refreshToken
-    );
+    // Check if refresh token exists
+    let tokenExists = false;
+    if (user.refreshTokens) {
+      tokenExists = user.refreshTokens.some((rt) => 
+        typeof rt === 'string' ? rt === refreshToken : rt.token === refreshToken
+      );
+    }
 
     if (!tokenExists) {
       return next(new AppError("Invalid refresh token", 401));
     }
 
-    if (!user.isActive) {
+    if (user.isActive === false) {
       return next(new AppError("Your account has been deactivated", 401));
+    }
+
+    // Add role if not present
+    if (!user.role) {
+      if (user.constructor.modelName === 'Buyer') {
+        user.role = 'buyer';
+      } else if (user.constructor.modelName === 'Farmer') {
+        user.role = 'farmer';
+      }
     }
 
     req.user = user;
@@ -172,9 +218,7 @@ const verifyRefreshToken = asyncHandler(async (req, res, next) => {
   }
 });
 
-// ------------------------------
-//  CHECK OWNERSHIP
-// ------------------------------
+
 const checkOwnership = (resourceIdField = "id") => {
   return asyncHandler(async (req, res, next) => {
     const resourceId = req.params[resourceIdField];
@@ -192,9 +236,7 @@ const checkOwnership = (resourceIdField = "id") => {
   });
 };
 
-// ------------------------------
-// RATE LIMIT
-// ------------------------------
+
 const createRateLimit = (
   windowMs = config.RATE_LIMIT_WINDOW,
   max = config.RATE_LIMIT_MAX_REQUESTS
@@ -239,9 +281,7 @@ const createRateLimit = (
   };
 };
 
-// ------------------------------
-//  API KEY VALIDATION
-// ------------------------------
+
 const validateApiKey = asyncHandler(async (req, res, next) => {
   const apiKey = req.headers["x-api-key"];
 
@@ -256,13 +296,10 @@ const validateApiKey = asyncHandler(async (req, res, next) => {
   next();
 });
 
-// ------------------------------
-// EXPORTS
-// ------------------------------
 module.exports = {
   protect,
-  authorize,        // 👈 Added back for older routes
-  restrictTo,       // 👈 Alias to authorize()
+  authorize,
+  restrictTo,
   hasPermission,
   optionalAuth,
   verifyRefreshToken,

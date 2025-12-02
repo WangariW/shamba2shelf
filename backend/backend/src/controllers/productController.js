@@ -110,7 +110,7 @@ const createProduct = asyncHandler(async (req, res, next) => {
   const product = await Product.create(req.body);
 
   //unique QR code 
-  const productUrl = `https://localhost:5173/product/${product._id}`;
+  const productUrl = `${process.env.FRONTEND_URL}/trace/${product._id}`;
   const qrCodeDataUrl = await QRCode.toDataURL(productUrl);
 
   product.qrCode = qrCodeDataUrl;

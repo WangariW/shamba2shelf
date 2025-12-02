@@ -25,17 +25,20 @@ const {
 
 const router = express.Router();
 
-// Public routes for now
+// Public routes
 router.get('/', getAllBuyers);
 router.get('/top-rated', getTopRatedBuyers);
 router.get('/search/location', validateLocation, searchBuyersByLocation);
 router.get('/county/:county', validateCounty, getBuyersByCounty);
 router.get('/business-type/:businessType', validateBusinessType, getBuyersByBusinessType);
+
+// Protected route - Get current logged-in buyer
+router.get('/me', protect, (req, res, next) => {
+  req.params.id = req.user.id;
+  next();
+}, getBuyerDashboard);
+
 router.get('/:id', getBuyer);
-
-// ⚠️ TEMPORARY: Disable authentication for testing
-// router.use(protect);
-
 router.get('/:id/dashboard', getBuyerDashboard);
 router.get('/:id/orders', getBuyerOrders);
 router.get('/:id/analytics', getBuyerAnalytics);

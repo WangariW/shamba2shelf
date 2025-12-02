@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -33,20 +34,20 @@ const userSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters long'],
     select: false
   },
-  
+
   phoneNumber: {
     type: String,
     trim: true,
     match: [/^\+?[1-9]\d{1,14}$/, 'Please provide a valid phone number']
   },
+
   profilePicture: {
     type: String,
     default: null
   },
-  dateOfBirth: {
-    type: Date
-  },
-  
+
+  dateOfBirth: { type: Date },
+
   address: {
     street: String,
     city: String,
@@ -57,22 +58,16 @@ const userSchema = new mongoose.Schema({
 
   county: { type: String, default: null },
   town: { type: String, default: null },
-  
-  latitude: {
-  type: Number,
-  default: null
-  },
 
-  longitude: {
-  type: Number,
-  default: null
-  },
+  latitude: { type: Number, default: null },
+  longitude: { type: Number, default: null },
 
   role: {
     type: String,
     enum: ['user', 'farmer', 'buyer', 'admin', 'superadmin'],
     default: 'user'
   },
+
   permissions: [{
     type: String,
     enum: [
@@ -82,44 +77,32 @@ const userSchema = new mongoose.Schema({
       'read:analytics', 'admin:all'
     ]
   }],
-  
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
+
+  isActive: { type: Boolean, default: true },
+  isEmailVerified: { type: Boolean, default: false },
+
+  /** 🔐 SECURE TOKEN FIELDS (NEW UPDATED VERSION) */
   emailVerificationToken: String,
-  emailVerificationExpire: Date,
-  
-  loginAttempts: {
-    type: Number,
-    default: 0
-  },
-  lockUntil: Date,
+  emailVerificationExpires: Date,
   passwordResetToken: String,
-  passwordResetExpire: Date,
+  passwordResetExpires: Date,
+
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: Date,
   passwordChangedAt: Date,
-  
+
   refreshTokens: [{
     token: String,
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
+    createdAt: { type: Date, default: Date.now },
     userAgent: String,
     ipAddress: String
   }],
-  
+
   lastLogin: Date,
   lastActivity: Date,
+
   loginHistory: [{
-    timestamp: {
-      type: Date,
-      default: Date.now
-    },
+    timestamp: { type: Date, default: Date.now },
     ipAddress: String,
     userAgent: String,
     success: Boolean
@@ -130,40 +113,78 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-userSchema.virtual('fullName').get(function() {
+/* ----------------------------- VIRTUALS ----------------------------- */
+
+userSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
-userSchema.virtual('isLocked').get(function() {
+userSchema.virtual('isLocked').get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-// Indexes (email index is automatically created due to unique: true constraint)
+/* ----------------------------- INDEXES ----------------------------- */
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ createdAt: -1 });
 
-// Pre-save middleware to hash password
-userSchema.pre('save', async function(next) {
+/* ----------------------- PASSWORD HASHING -------------------------- */
+
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(config.BCRYPT_SALT_ROUNDS);
     this.password = await bcrypt.hash(this.password, salt);
-    
     this.passwordChangedAt = Date.now() - 1000;
-    
     next();
   } catch (error) {
     next(error);
   }
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
+/* ----------------------------- METHODS ----------------------------- */
+
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-userSchema.methods.generateAccessToken = function() {
+/* --------------------------- TOKENS (SECURE) ------------------------ */
+/**
+ * 🔐 Generates secure email verification token
+ */
+userSchema.methods.createEmailVerificationToken = function () {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(rawToken)
+    .digest('hex');
+
+  this.emailVerificationExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+
+  return rawToken; // send the RAW token via email
+};
+
+/**
+ * 🔐 Generates secure password reset token
+ */
+userSchema.methods.createPasswordResetToken = function () {
+  const rawToken = crypto.randomBytes(32).toString('hex');
+
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(rawToken)
+    .digest('hex');
+
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+
+  return rawToken;
+};
+
+/* --------------------- JWT ACCESS & REFRESH -------------------- */
+
+userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       id: this._id,
@@ -180,7 +201,7 @@ userSchema.methods.generateAccessToken = function() {
   );
 };
 
-userSchema.methods.generateRefreshToken = function() {
+userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     { id: this._id },
     config.JWT_REFRESH_SECRET,
@@ -192,88 +213,81 @@ userSchema.methods.generateRefreshToken = function() {
   );
 };
 
-userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
-  if (this.passwordChangedAt) {
-    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
-    return JWTTimestamp < changedTimestamp;
-  }
-  return false;
-};
+/* ------------------------ LOGIN ATTEMPTS ------------------------ */
 
-userSchema.methods.incLoginAttempts = function() {
+userSchema.methods.incLoginAttempts = function () {
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
       $unset: { lockUntil: 1 },
       $set: { loginAttempts: 1 }
     });
   }
-  
+
   const updates = { $inc: { loginAttempts: 1 } };
-  
+
   if (this.loginAttempts + 1 >= config.MAX_LOGIN_ATTEMPTS && !this.isLocked) {
     updates.$set = { lockUntil: Date.now() + config.LOCK_TIME };
   }
-  
+
   return this.updateOne(updates);
 };
 
-userSchema.methods.resetLoginAttempts = function() {
+userSchema.methods.resetLoginAttempts = function () {
   return this.updateOne({
     $unset: { loginAttempts: 1, lockUntil: 1 }
   });
 };
 
-userSchema.methods.addRefreshToken = function(token, userAgent, ipAddress) {
+/* ---------------------- REFRESH TOKENS MGMT ---------------------- */
+
+userSchema.methods.addRefreshToken = function (token, userAgent, ipAddress) {
   if (this.refreshTokens.length >= 5) {
     this.refreshTokens.shift();
   }
-  
-  this.refreshTokens.push({
-    token,
-    userAgent,
-    ipAddress
-  });
-  
+
+  this.refreshTokens.push({ token, userAgent, ipAddress });
   return this.save();
 };
 
-userSchema.methods.removeRefreshToken = function(token) {
+userSchema.methods.removeRefreshToken = function (token) {
   return this.updateOne({
     $pull: { refreshTokens: { token: token } }
   });
 };
 
-userSchema.methods.removeAllRefreshTokens = function() {
+userSchema.methods.removeAllRefreshTokens = function () {
   return this.updateOne({
     $set: { refreshTokens: [] }
   });
 };
 
-userSchema.methods.updateLastActivity = function() {
+/* ---------------------- LAST ACTIVITY ---------------------- */
+
+userSchema.methods.updateLastActivity = function () {
   return this.updateOne({
     $set: { lastActivity: Date.now() }
   });
 };
 
-userSchema.methods.addLoginHistory = function(ipAddress, userAgent, success = true) {
+/* ---------------------- LOGIN HISTORY ---------------------- */
+
+userSchema.methods.addLoginHistory = function (ipAddress, userAgent, success = true) {
   if (this.loginHistory.length >= 10) {
     this.loginHistory.shift();
   }
-  
-  this.loginHistory.push({
-    ipAddress,
-    userAgent,
-    success
-  });
-  
+
+  this.loginHistory.push({ ipAddress, userAgent, success });
+
   if (success) {
     this.lastLogin = Date.now();
   }
-  
+
   return this.save();
 };
 
-userSchema.statics.getRolePermissions = function() {
+/* ---------------------- ROLES ---------------------- */
+
+userSchema.statics.getRolePermissions = function () {
   return {
     user: ['read:products'],
     farmer: ['read:products', 'write:products', 'read:orders'],
@@ -288,38 +302,35 @@ userSchema.statics.getRolePermissions = function() {
   };
 };
 
-userSchema.statics.authenticate = async function(email, password, ipAddress, userAgent) {
-  const user = await this.findOne({ 
+/* ---------------------- AUTHENTICATION ---------------------- */
+
+userSchema.statics.authenticate = async function (email, password, ipAddress, userAgent) {
+  const user = await this.findOne({
     email: email.toLowerCase(),
-    isActive: true 
+    isActive: true
   }).select('+password');
-  
-  if (!user) {
-    return { success: false, message: 'Invalid credentials' };
-  }
-  
+
+  if (!user) return { success: false, message: 'Invalid credentials' };
+
   if (user.isLocked) {
-    return { 
-      success: false, 
-      message: 'Account temporarily locked due to too many failed login attempts. Please try again later.' 
+    return {
+      success: false,
+      message: 'Account temporarily locked. Try again later.'
     };
   }
-  
+
   const isPasswordValid = await user.comparePassword(password);
-  
+
   if (!isPasswordValid) {
     await user.addLoginHistory(ipAddress, userAgent, false);
     await user.incLoginAttempts();
-    
     return { success: false, message: 'Invalid credentials' };
   }
-  
-  if (user.loginAttempts > 0) {
-    await user.resetLoginAttempts();
-  }
+
+  if (user.loginAttempts > 0) await user.resetLoginAttempts();
 
   await user.addLoginHistory(ipAddress, userAgent, true);
-  
+
   return { success: true, user };
 };
 

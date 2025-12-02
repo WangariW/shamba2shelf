@@ -1,17 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    if (darkMode){
-      document.documentElement.classList.add("dark");
-    }else{
-      document.documentElement.classList.remove("dark");
-    }
+    if (darkMode) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
   }, [darkMode]);
-
 
   return (
     <header className="w-full bg-white dark:bg-[#1f1b18] border-b border-gray-200 dark:border-[#3a322b] shadow-sm transition-colors duration-300">
@@ -21,7 +17,7 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden md:flex space-x-8">
-          <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-[#c49a6c]font-medium transition">
+          <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-[#c49a6c] font-medium transition">
             Home
           </Link>
           <Link to="/buyer/marketplace" className="text-gray-700 dark:text-gray-300 hover:text-[#c49a6c] font-medium transition">
@@ -32,22 +28,27 @@ export default function Navbar() {
           </Link>
           <Link to="/farmer/dashboard" className="text-gray-700 dark:text-gray-300 hover:text-[#c49a6c] font-medium transition">
             Farmer
-          </Link> 
+          </Link>
 
-          {/* Dark mode toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="ml-6 px-3 py-2 rounded-md bg-[#c49a6c] hover:bg-[#b18755] text-[#1f1b18] text-sm font-semibold transition"
-            >
-           {darkMode ? "Light" : "Dark"}
-         </button>
+          >
+            {darkMode ? "Light" : "Dark"}
+          </button>
         </nav>
 
         <div className="flex items-center space-x-4">
-          <Link to="/login" className="text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-[#3a322b] px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2520] transition">
+          <Link
+            to="/login"
+            className="text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-[#3a322b] px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2520] transition"
+          >
             Log in
           </Link>
-          <Link to="/signup" className="bg-gray-900 dark:bg-[#c49a6c] text-white dark:text-gray-900 px-4 py-2 rounded-md hover:bg-gray-800 dark:hover:bg-[#b18755]-400 transition">
+          <Link
+            to="/signup"
+            className="bg-gray-900 dark:bg-[#c49a6c] text-white dark:text-gray-900 px-4 py-2 rounded-md hover:bg-gray-800 dark:hover:bg-[#b18755] transition"
+          >
             Sign up
           </Link>
         </div>

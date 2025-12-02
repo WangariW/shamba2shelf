@@ -2,11 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { QRCodeCanvas } from "qrcode.react";
 
-import farmer1 from "../../assets/images/kamau-farmer.jpg";
-import farmer2 from "../../assets/images/wanjiru-farmer.jpg";
-import farmer3 from "../../assets/images/nduta-farm.jpg";
 import heroImage from "../../assets/images/coffee-packaging-2.jpg";
 
 export default function Marketplace() {
@@ -16,31 +12,43 @@ export default function Marketplace() {
   const [selectedType, setSelectedType] = useState("All");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [farmers, setFarmers] = useState([]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/products?limit=30");
-        const data = await res.json();
-        console.log("Fetched products:", data);
-        setProducts(data.data || []);
+        // Fetch products
+        const productsRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products?limit=30`);
+        const productsData = await productsRes.json();
+        console.log("Fetched products:", productsData);
+        setProducts(productsData.data || []);
+
+        // Fetch top-rated farmers
+        const farmersRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/farmers/top-rated`);
+        const farmersData = await farmersRes.json();
+        console.log("Fetched top farmers:", farmersData);
+        setFarmers(farmersData.data || []);
       } catch (err) {
-        console.error("Error fetching products:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, []);
-
 
   const counties = ["All", "Nyeri", "Kirinyaga", "Kiambu", "Muranga", "Embu", "Meru"];
   const forms = ["All", "Beans", "Ground Coffee"];
   const types = ["All", "Arabica", "Robusta", "Blend"];
 
-  const filteredProducts = products.filter((p) => 
-     p.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase());
+    const matchesCounty = selectedCounty === "All" || p.farmerId?.location?.county === selectedCounty;
+    const matchesForm = selectedForm === "All" || p.form === selectedForm;
+    const matchesType = selectedType === "All" || p.variety === selectedType;
+    
+    return matchesSearch && matchesCounty && matchesForm && matchesType;
+  });
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
@@ -105,58 +113,68 @@ export default function Marketplace() {
         </div>
 
         {/*Product Cards*/}
-        <motion.div
-          className="grid sm:grid-cols-2 md:grid-cols-3 gap-10"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0, y: 20 },
-            visible: {
-              opacity: 1,
-              y: 0,
-              transition: { delayChildren: 0.2, staggerChildren: 0.1 },
-            },
-          }}
-        >
-          {filteredProducts.map((p) => (
-            <motion.div
-              key={p._id}
-              whileHover={{ scale: 1.03 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-xl transition flex flex-col text-center"
-            >
-              <img src={p.image} alt={p.name} className="w-full h-56 object-cover hover:opacity-90 transition"/>
-              <div className="p-5 flex flex-col flex-1">
-                <h3 className="text-2xl font-semibold mb-2">{p.name}</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-1"> Type: {p.type}</p>
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Form: {p.form}</p>
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">County: {p.county}</p>
-                <p className="text-[#360816] dark:text-amber-300 font-semibold mb-3">{p.price}</p>
-                <p className="text-sm text-gray-500 mb-4">By {p.farmer}</p>
+        {loading ? (
+          <div className="text-center py-10">
+            <p>Loading products...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-10">
+            <p>No products found matching your filters.</p>
+          </div>
+        ) : (
+          <motion.div
+            className="grid sm:grid-cols-2 md:grid-cols-3 gap-10"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: {
+                opacity: 1,
+                y: 0,
+                transition: { delayChildren: 0.2, staggerChildren: 0.1 },
+              },
+            }}
+          >
+            {filteredProducts.map((p) => (
+              <motion.div
+                key={p._id}
+                whileHover={{ scale: 1.03 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-xl transition flex flex-col text-center"
+              >
+                <img src={p.image || p.images?.[0]} alt={p.name} className="w-full h-56 object-cover hover:opacity-90 transition"/>
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 className="text-2xl font-semibold mb-2">{p.name}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Type: {p.variety || p.type}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Form: {p.form}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">County: {p.farmerId?.location?.county || "N/A"}</p>
+                  <p className="text-[#360816] dark:text-amber-300 font-semibold mb-3">KES {p.price}</p>
+                  <p className="text-sm text-gray-500 mb-4">By {p.farmerId?.firstName} {p.farmerId?.lastName}</p>
 
-                <div className="flex justify-center mb-3 transition-transform hover:scale-105">
-                  {p.qrCode && (
-                    <img
-                      src={p.qrCode}
-                      alt="QR Code"
-                      className="mt-2 w-24 h-24 mx-auto rounded-md shadow-md cursor-pointer"
-                      onClick={() =>
-                        window.open(`http://localhost:5173/product/${p._id}`, "_blank")
-                      }
-                    />
-                  )}
-                  <p className="text-xs text-gray-500 mt-1 italic"> Scan to trace origin</p>
+                  <div className="flex flex-col items-center mb-3 transition-transform hover:scale-105">
+                    {p.qrCode && (
+                      <img
+                        src={p.qrCode}
+                        alt="QR Code"
+                        className="mt-2 w-24 h-24 rounded-md shadow-md cursor-pointer"
+                        onClick={() =>
+                          window.open(`${import.meta.env.VITE_FRONTEND_URL}/product/${p._id}`, "_blank")
+                        }
+                      />
+                    )}
+                    <p className="text-xs text-gray-500 mt-1 italic">Scan to trace origin</p>
+                  </div>
+
+                  <Link
+                    to={`/trace/${p._id}`}
+                    className="mt-auto block w-full bg-[#360816] text-white py-2 rounded-md hover:bg-[#4a0a20] transition font-semibold"
+                  >
+                    View Details
+                  </Link>
                 </div>
-
-                <Link
-                  to={`/trace/${p._id || p.id}`}
-                  className="mt-auto block w-full bg-[#360816] text-white py-2 rounded-md hover:bg-[#4a0a20] transition font-semibold"
-                >
-                  View Details
-                </Link>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </section>
 
       
@@ -164,44 +182,36 @@ export default function Marketplace() {
         <h2 className="text-4xl font-bold text-center mb-10 font-archivo">
           Meet Our Farmers
         </h2>
-        <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
-          {[
-            {
-              name: "Kamau Farm",
-              img: farmer1,
-              story:
-                "Located in Nyeri’s lush highlands, Kamau’s family farm has been growing Arabica beans for over three generations.",
-            },
-            {
-              name: "Wanjiru Estate",
-              img: farmer2,
-              story:
-                "Nestled in Kirinyaga, Wanjiru Estate is known for sustainable farming and empowering women in coffee production.",
-            },
-            {
-              name: "Nduta Farm",
-              img: farmer3,
-              story:
-                "From Muranga hills, Nduta Farm blends tradition and technology to deliver rich, traceable coffee experiences.",
-            },
-          ].map((f) => (
-            <motion.div
-              key={f.name}
-              className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md text-center hover:shadow-xl transition"
-              whileHover={{ scale: 1.03 }}
-            >
-              <img
-                src={f.img}
-                alt={f.name}
-                className="w-full h-60 object-cover rounded-lg mb-4"
-              />
-              <h3 className="text-2xl font-semibold text-[#360816] dark:text-amber-300 mb-2">
-                {f.name}
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 text-sm">{f.story}</p>
-            </motion.div>
-          ))}
-        </div>
+        {farmers.length === 0 ? (
+          <p className="text-center text-gray-600">Loading farmers...</p>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+            {farmers.slice(0, 3).map((f) => (
+              <motion.div
+                key={f._id}
+                className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md text-center hover:shadow-xl transition"
+                whileHover={{ scale: 1.03 }}
+              >
+                <div className="w-full h-60 bg-gray-300 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
+                  {f.profilePicture ? (
+                    <img src={f.profilePicture} alt={f.firstName} className="w-full h-full object-cover" />
+                  ) : (
+                      <p className="text-gray-500">No Photo</p>
+                  )}
+                </div>  
+                <h3 className="text-2xl font-semibold text-[#360816] dark:text-amber-300 mb-2">
+                  {f.firstName} {f.lastName}
+                </h3>
+                <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                  📍 {f.location?.county || f.county}
+                </p>
+                <p className="text-gray-700 dark:text-gray-300 text-sm">
+                  ⭐ Rating: {f.averageRating || "N/A"}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       

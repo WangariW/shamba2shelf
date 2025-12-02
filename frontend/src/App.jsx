@@ -14,6 +14,7 @@ import OrderSuccess from "./pages/Buyer/OrderSuccess";
 import Navbar from "./components/Navbar";
 import FarmerProfile from "./pages/Farmer/FarmerProfile";
 import RouteOptimization from "./pages/Buyer/RouteOptimization";
+import ProtectedRoute from "./components/ProtectedRoutes";
 
 
 export default function App() {
@@ -40,6 +41,9 @@ export default function App() {
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/buyer/order-review" element={<OrderReview />} />
           <Route path="/buyer/order-success" element={<OrderSuccess />} />
+          <Route path="/farmer/dashboard"element={<ProtectedRoute allowedRoles={["farmer"]}><FarmerDashboard /></ProtectedRoute>}/>
+          <Route path="/buyer/dashboard"element={<ProtectedRoute allowedRoles={["buyer"]}><BuyerDashboard /></ProtectedRoute>}/>
+
         </Routes>
       </main>
     </div>

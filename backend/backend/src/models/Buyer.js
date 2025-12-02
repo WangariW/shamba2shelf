@@ -21,7 +21,7 @@ const buyerSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: false,
     minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
@@ -33,7 +33,8 @@ const buyerSchema = new mongoose.Schema({
   
   businessType: {
     type: String,
-    required: [true, 'Business type is required'],
+    required: false,
+    default: 'Individual',
     enum: {
       values: ['Retail', 'Wholesale', 'Restaurant', 'Cafe', 'Export', 'Processing', 'Individual'],
       message: 'Business type must be one of: Retail, Wholesale, Restaurant, Cafe, Export, Processing, Individual'
@@ -41,60 +42,34 @@ const buyerSchema = new mongoose.Schema({
   },
   businessName: {
     type: String,
-    required: function() {
-      return this.businessType !== 'Individual';
-    },
+    required: false,
     trim: true,
     maxlength: [150, 'Business name cannot exceed 150 characters']
   },
   businessLicense: {
     type: String,
-    required: function() {
-      return ['Wholesale', 'Export', 'Processing'].includes(this.businessType);
-    },
+    required: false,
     trim: true
   },
   
   deliveryAddress: {
-    street: {
-      type: String,
-      required: [true, 'Street address is required'],
-      trim: true
-    },
-    city: {
-      type: String,
-      required: [true, 'City is required'],
-      trim: true
-    },
-    county: {
-      type: String,
-      required: [true, 'County is required'],
-      enum: {
-        values: ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Thika', 'Malindi', 'Nyeri', 'Kiambu', 'Murang\'a', 'Kirinyaga', 'Embu', 'Meru', 'Machakos'],
-        message: 'County must be one of the major delivery locations'
-      }
-    },
-    postalCode: {
-      type: String,
-      required: [true, 'Postal code is required'],
-      match: [/^[0-9]{5}$/, 'Postal code must be 5 digits']
-    },
-    coordinates: {
-      latitude: {
-        type: Number,
-        required: [true, 'Delivery latitude is required'],
-        min: [-4.7, 'Latitude must be within Kenya boundaries'],
-        max: [5.0, 'Latitude must be within Kenya boundaries']
+    street: { type: String, trim: true, default: 'Not specified' },
+    city: { type: String, trim: true, default: 'Nairobi' },
+    county: { type: String, trim: true, default: 'Nairobi' },
+    postalCode: { type: String, trim: true, default: '00100' },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
       },
-      longitude: {
-        type: Number,
-        required: [true, 'Delivery longitude is required'],
-        min: [33.9, 'Longitude must be within Kenya boundaries'],
-        max: [41.9, 'Longitude must be within Kenya boundaries']
+      coordinates: {
+        type: [Number],
+        default: [-1.286389, 36.817223] // Nairobi coordinates
       }
     }
   },
-
+      
   preferences: {
     coffeeVarieties: [{
       type: String,
@@ -232,7 +207,13 @@ const buyerSchema = new mongoose.Schema({
   passwordResetExpires: Date,
   passwordChangedAt: Date,
 
-  refreshTokens: [String],
+  refreshTokens: [{
+    token: String,
+    createdAt: { type: Date, default: Date.now },
+    userAgent: String,
+    ipAddress: String 
+  
+  }],
 
   loginAttempts: {
     type: Number,
@@ -267,7 +248,7 @@ buyerSchema.virtual('reviews', {
   foreignField: 'buyerId'
 });
 
-buyerSchema.index({ email: 1 });
+//buyerSchema.index({ email: 1 });
 buyerSchema.index({ phone: 1 });
 buyerSchema.index({ businessType: 1 });
 buyerSchema.index({ 'deliveryAddress.county': 1 });
@@ -275,11 +256,17 @@ buyerSchema.index({ 'deliveryAddress.coordinates': '2dsphere' });
 buyerSchema.index({ isActive: 1, isVerified: 1 });
 buyerSchema.index({ createdAt: -1 });
 buyerSchema.index({ 'rating.average': -1 });
+buyerSchema.index({ 'deliveryAddress.location': '2dsphere' });
 
 buyerSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
-  this.password = await bcrypt.hash(this.password, 12);
+  if (!this.password || typeof this.password !== 'string' || this.password.length === 0) {
+    return next();
+  }
+
+  const saltRounds = 12;
+  this.password = await bcrypt.hash(this.password, saltRounds);
   next();
 });
 
@@ -438,4 +425,37 @@ buyerSchema.methods.addPreferredFarmer = function(farmerId, orderValue) {
   }
 };
 
+buyerSchema.methods.comparePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+};
+
+buyerSchema.methods.generateAccessToken = function() {
+  return jwt.sign(
+    { 
+      id: this._id, 
+      email: this.email, 
+      role: 'buyer', 
+      name: this.name
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '15m' }
+  );
+};
+
+buyerSchema.methods.generateRefreshToken = function() {
+  return jwt.sign(
+    { id: this._id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+  );
+};
+
+buyerSchema.methods.addRefreshToken = function(token, userAgent, ipAddress) {
+  if (this.refreshTokens.length >= 5) {
+    this.refreshTokens.shift();
+  }
+  
+  this.refreshTokens.push({ token, userAgent, ipAddress });
+  return this.save();
+};
 module.exports = mongoose.model('Buyer', buyerSchema);

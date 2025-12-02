@@ -1,0 +1,56 @@
+[
+  {
+    "productName": "Arabica AA Nyeri Beans",
+    "fileName": "arabica-aa-nyeri.webp",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344377/kofisafi-products/arabica-aa-nyeri.webp",
+    "publicId": "kofisafi-products/arabica-aa-nyeri"
+  },
+  {
+    "productName": "Robusta Kirinyaga Ground",
+    "fileName": "robusta-kirinyaga.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344381/kofisafi-products/robusta-kirinyaga.jpg",
+    "publicId": "kofisafi-products/robusta-kirinyaga"
+  },
+  {
+    "productName": "Blend Kiambu Beans",
+    "fileName": "blend-kiambu.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344384/kofisafi-products/blend-kiambu.jpg",
+    "publicId": "kofisafi-products/blend-kiambu"
+  },
+  {
+    "productName": "Arabica Murang'a Ground",
+    "fileName": "arabica-muranga.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344385/kofisafi-products/arabica-muranga.jpg",
+    "publicId": "kofisafi-products/arabica-muranga"
+  },
+  {
+    "productName": "Robusta Embu Beans",
+    "fileName": "robusta-embu.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344387/kofisafi-products/robusta-embu.jpg",
+    "publicId": "kofisafi-products/robusta-embu"
+  },
+  {
+    "productName": "Arabica Meru Ground",
+    "fileName": "arabica-meru.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344389/kofisafi-products/arabica-meru.jpg",
+    "publicId": "kofisafi-products/arabica-meru"
+  },
+  {
+    "productName": "SL28 Kirinyaga Peaberry",
+    "fileName": "sl28-kirinyaga-peaberry.png",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344390/kofisafi-products/sl28-kirinyaga-peaberry.png",
+    "publicId": "kofisafi-products/sl28-kirinyaga-peaberry"
+  },
+  {
+    "productName": "Blue Mountain Embu Gold",
+    "fileName": "blue-mountain-embu.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344391/kofisafi-products/blue-mountain-embu.jpg",
+    "publicId": "kofisafi-products/blue-mountain-embu"
+  },
+  {
+    "productName": "Kent Meru Classic",
+    "fileName": "kent-meru-classic.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344392/kofisafi-products/kent-meru-classic.jpg",
+    "publicId": "kofisafi-products/kent-meru-classic"
+  }
+]
