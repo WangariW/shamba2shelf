@@ -1,17 +1,19 @@
 import axios from "axios";
 
+const BACKEND_URL = "https://10.0.9.91:5000";  // Hardcoded
+
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: `${BACKEND_URL}/api`,
   withCredentials: true,
 });
 
 api.interceptors.request.use(
   (config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token){
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
   },
   (error) => {
     return Promise.reject(error);
@@ -30,14 +32,14 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem("refreshToken");
         if (!refreshToken) throw new Error("No refresh token");
 
-        const response = await axios.post("http://localhost:5000/api/auth/refresh", {
+        const response = await axios.post(`${BACKEND_URL}/api/auth/refresh`, {
           refreshToken,
         });
 
         const { accessToken } = response.data;
         localStorage.setItem("accessToken", accessToken);
 
-         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem("accessToken");

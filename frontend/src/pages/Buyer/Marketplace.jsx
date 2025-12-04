@@ -1,7 +1,9 @@
 /* eslint-disable no-unused-vars */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import CartContext from "../../context/CartContext.jsx";
+import api from "../../api/axios.jsx";
 
 import heroImage from "../../assets/images/coffee-packaging-2.jpg";
 
@@ -14,20 +16,26 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [farmers, setFarmers] = useState([]);
 
+  const { cartItems, addToCart: contextAddToCart } = useContext(CartContext);
+
+  const addToCart = (product, qty = 1) => {
+    if (typeof contextAddToCart === "function") {
+      contextAddToCart(product, qty);
+    } else {
+      console.warn("addToCart not available in CartContext; fallback logging:", product, qty);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch products
-        const productsRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products?limit=30`);
-        const productsData = await productsRes.json();
-        console.log("Fetched products:", productsData);
-        setProducts(productsData.data || []);
+        const productsRes = await api.get('/products?limit=30');
+        console.log("Fetched products:", productsRes.data);
+        setProducts(productsRes.data.data || []);
 
-        // Fetch top-rated farmers
-        const farmersRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/farmers/top-rated`);
-        const farmersData = await farmersRes.json();
-        console.log("Fetched top farmers:", farmersData);
-        setFarmers(farmersData.data || []);
+        const farmersRes = await api.get('/farmers/top-rated');
+        console.log("Fetched top farmers:", farmersRes.data);
+        setFarmers(farmersRes.data.data || []);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -43,7 +51,7 @@ export default function Marketplace() {
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase());
-    const matchesCounty = selectedCounty === "All" || p.farmerId?.location?.county === selectedCounty;
+    const matchesCounty = selectedCounty === "All" || p.farmerId?.county === selectedCounty;
     const matchesForm = selectedForm === "All" || p.form === selectedForm;
     const matchesType = selectedType === "All" || p.variety === selectedType;
     
@@ -69,22 +77,19 @@ export default function Marketplace() {
             Browse authentic Kenyan coffee — from beans to ground, all directly sourced
             from local farmers.
           </p>
-          <a
-            href="#products"
-            className="bg-[#360816] px-6 py-3 rounded-md hover:bg-[#4a0a20] transition font-semibold"
-          >
+          
+          <a href="#products"
+            className="bg-[#360816] px-6 py-3 rounded-md hover:bg-[#4a0a20] transition font-semibold">
             Browse Products
-          </a>
+            </a>
         </motion.div>
       </section>
 
-      {/*Products*/}
       <section id="products" className="py-20 px-6 md:px-20">
         <h2 className="text-4xl font-bold text-center mb-10 font-archivo">
           Our Coffee Selection
         </h2>
 
-        
         <div className="flex flex-col md:flex-row flex-wrap justify-center gap-6 mb-10 max-w-5xl mx-auto">
           <input
             type="text"
@@ -112,7 +117,6 @@ export default function Marketplace() {
           ))}
         </div>
 
-        {/*Product Cards*/}
         {loading ? (
           <div className="text-center py-10">
             <p>Loading products...</p>
@@ -146,9 +150,10 @@ export default function Marketplace() {
                   <h3 className="text-2xl font-semibold mb-2">{p.name}</h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Type: {p.variety || p.type}</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Form: {p.form}</p>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">County: {p.farmerId?.location?.county || "N/A"}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">County: {p.farmerId?.county || "N/A"}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Available: {p.quantity || "N/A"} kg</p>
                   <p className="text-[#360816] dark:text-amber-300 font-semibold mb-3">KES {p.price}</p>
-                  <p className="text-sm text-gray-500 mb-4">By {p.farmerId?.firstName} {p.farmerId?.lastName}</p>
+                  <p className="text-sm text-gray-500 mb-4">By {p.farmerId?.name || "N/A"}</p>
 
                   <div className="flex flex-col items-center mb-3 transition-transform hover:scale-105">
                     {p.qrCode && (
@@ -157,7 +162,7 @@ export default function Marketplace() {
                         alt="QR Code"
                         className="mt-2 w-24 h-24 rounded-md shadow-md cursor-pointer"
                         onClick={() =>
-                          window.open(`${import.meta.env.VITE_FRONTEND_URL}/product/${p._id}`, "_blank")
+                          window.open(`/trace/${p._id}`, "_blank")
                         }
                       />
                     )}
@@ -165,25 +170,25 @@ export default function Marketplace() {
                   </div>
 
                   <Link
-                    to={`/trace/${p._id}`}
-                    className="mt-auto block w-full bg-[#360816] text-white py-2 rounded-md hover:bg-[#4a0a20] transition font-semibold"
+                    to={`/product/${p._id}`}
+                    className="flex-1 block text-center bg-[#360816] text-white py-2 rounded-md hover:bg-[#4a0a20] transition font-semibold"
                   >
                     View Details
                   </Link>
                 </div>
               </motion.div>
             ))}
+          
           </motion.div>
         )}
       </section>
 
-      
       <section className="bg-[#F7F3F0] dark:bg-gray-800 py-20 px-6 md:px-20">
         <h2 className="text-4xl font-bold text-center mb-10 font-archivo">
           Meet Our Farmers
         </h2>
         {farmers.length === 0 ? (
-          <p className="text-center text-gray-600">Loading farmers...</p>
+          <p className="text-center text-gray-600">No farmers available at the moment.</p>
         ) : (
           <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
             {farmers.slice(0, 3).map((f) => (
@@ -192,18 +197,18 @@ export default function Marketplace() {
                 className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md text-center hover:shadow-xl transition"
                 whileHover={{ scale: 1.03 }}
               >
-                <div className="w-full h-60 bg-gray-300 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
-                  {f.profilePicture ? (
-                    <img src={f.profilePicture} alt={f.firstName} className="w-full h-full object-cover" />
+                <div className="w-full h-60 bg-gray-300 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                  {f.profileImage ? (
+                    <img src={f.profileImage} alt={f.name} className="w-full h-full object-cover" />
                   ) : (
                       <p className="text-gray-500">No Photo</p>
                   )}
                 </div>  
                 <h3 className="text-2xl font-semibold text-[#360816] dark:text-amber-300 mb-2">
-                  {f.firstName} {f.lastName}
+                  {f.name}
                 </h3>
                 <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
-                  📍 {f.location?.county || f.county}
+                  📍 {f.county}
                 </p>
                 <p className="text-gray-700 dark:text-gray-300 text-sm">
                   ⭐ Rating: {f.averageRating || "N/A"}
@@ -214,7 +219,6 @@ export default function Marketplace() {
         )}
       </section>
 
-      
       <section className="bg-[#360816] text-white py-20 px-6 md:px-20 text-center overflow-hidden">
         <motion.h2
           className="text-4xl font-bold mb-10 font-archivo"

@@ -16,6 +16,13 @@ const buyerIcon = new L.Icon({
   iconAnchor: [16, 32],
 });
 
+const deliveryIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/1995/1995574.png", 
+  iconSize: [32, 32],
+  iconAnchor: [18, 32],
+});
+
+
 function FitBounds({ coords }) {
   const map = useMap();
   useEffect(() => {
@@ -27,8 +34,14 @@ function FitBounds({ coords }) {
   return null;
 }
 
-export default function DeliveryRouteMap({ farmers, buyer, routeOrder }) {
-  const center = buyer
+export default function DeliveryRouteMap({ 
+  farmers, 
+  buyer, 
+  routeOrder, initialLocation = null, locationType = "buyer"}) {
+
+  const center = initialLocation
+    ? [initialLocation.lat, initialLocation.lng]
+    : buyer
     ? [buyer.lat, buyer.lng]
     : farmers?.length
     ? [farmers[0].latitude, farmers[0].longitude]
@@ -44,10 +57,20 @@ export default function DeliveryRouteMap({ farmers, buyer, routeOrder }) {
     return coords;
   }, [farmers, routeOrder, buyer]);
 
+  const getInitialIcon = () => {
+    if (locationType === "delivery") return deliveryIcon;
+    return buyerIcon;
+  };
+
+  const getInitialLabel = () => {
+    if (locationType === "delivery") return "Delivery Location";
+    return "Your Location";
+  };
+
   return (
     <MapContainer
       center={center}
-      zoom={10}
+      zoom={initialLocation? 13 : 10}
       style={{ width: "100%", height: "100%", borderRadius: "0.75rem" }}
     >
       <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -57,17 +80,23 @@ export default function DeliveryRouteMap({ farmers, buyer, routeOrder }) {
         coords={[
           ...(farmers?.map((f) => [f.latitude, f.longitude]) || []),
           ...(buyer ? [[buyer.lat, buyer.lng]] : []),
+          ...(initialLocation ? [[initialLocation.lat, initialLocation.lng]] : []),
         ]}
       />
 
       
-      {buyer && (
+      {initialLocation && !routeOrder && (
+        <Marker position={[initialLocation.lat, initialLocation.lng]} icon={getInitialIcon()}>
+          <Popup>{getInitialLabel()}</Popup>
+        </Marker>
+      )}
+
+      {buyer && routeOrder && (
         <Marker position={[buyer.lat, buyer.lng]} icon={buyerIcon}>
           <Popup>Buyer Location</Popup>
         </Marker>
       )}
 
-      
       {farmers?.map((f) => (
         <Marker
           key={f._id}
@@ -76,7 +105,7 @@ export default function DeliveryRouteMap({ farmers, buyer, routeOrder }) {
         >
           <Popup>
             {f.firstName} {f.lastName} <br />
-            {f.town}, {f.county}
+            {f.nearestTown || f.town}, {f.county}
           </Popup>
         </Marker>
       ))}
@@ -87,7 +116,7 @@ export default function DeliveryRouteMap({ farmers, buyer, routeOrder }) {
           positions={routeCoords}
           color="blue"
           weight={5}
-          opacity={0.8}
+          opacity={0.6}
           className="route-animation"
         />
       )}

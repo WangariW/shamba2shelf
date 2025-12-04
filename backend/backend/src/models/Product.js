@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema({
 
   farmerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Farmer',
     required: [true, 'Farmer ID is required']
   },
 

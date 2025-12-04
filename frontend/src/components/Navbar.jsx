@@ -1,14 +1,6 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 export default function Navbar() {
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    if (darkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [darkMode]);
-
   return (
     <header className="w-full bg-white dark:bg-[#1f1b18] border-b border-gray-200 dark:border-[#3a322b] shadow-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-8 py-4">
@@ -29,13 +21,6 @@ export default function Navbar() {
           <Link to="/farmer/dashboard" className="text-gray-700 dark:text-gray-300 hover:text-[#c49a6c] font-medium transition">
             Farmer
           </Link>
-
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="ml-6 px-3 py-2 rounded-md bg-[#c49a6c] hover:bg-[#b18755] text-[#1f1b18] text-sm font-semibold transition"
-          >
-            {darkMode ? "Light" : "Dark"}
-          </button>
         </nav>
 
         <div className="flex items-center space-x-4">

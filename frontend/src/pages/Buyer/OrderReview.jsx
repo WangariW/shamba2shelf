@@ -1,38 +1,78 @@
 /* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import DeliveryRouteMap from "../../components/DeliveryRouteMap";
 import { geocodeAddress } from "../../utils/geocode";
+import CartContext from "../../context/CartContext";
+import OrderContext from "../../context/OrderContext";
+import { useAuth } from "../../context/useAuth";
 
 export default function OrderReview() {
-  // temp data — will later come from checkout state
-  const user = {
-    name: "Jane Doe",
-    email: "janedoe@gmail.com",
-    address: "123 Coffee Lane, Nairobi",
-    county: "Kiambu",
-    payment: "M-Pesa",
-  };
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { checkoutData } = useContext(OrderContext);
+  const { cartItems: contextCartItems } = useContext(CartContext);
 
-  const cartItems = [
-    { id: 1, name: "Arabica Beans", type: "Beans", price: 1200, quantity: 1 },
-    { id: 2, name: "Kiambu Ground Coffee", type: "Ground", price: 950, quantity: 2 },
-  ];
+  const cartItems = contextCartItems;
 
-  const total = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const total = cartItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
 
   const [routeResult, setRouteResult] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState(null);
+  const [geocoding, setGeocoding] = useState(false);
+
+  useEffect(() => {
+    if (!checkoutData || !checkoutData.name || cartItems.length === 0) {
+      navigate("/buyer/checkout");
+    }
+  }, [checkoutData, cartItems, navigate]);
+
+  // Geocode delivery address on page load
+  useEffect(() => {
+    const geocodeDelivery = async () => {
+      if (!checkoutData?.address || !checkoutData?.county) return;
+      
+      setGeocoding(true);
+      try {
+        const fullAddress = `${checkoutData.address}, ${checkoutData.county}`;
+        const coords = await geocodeAddress(fullAddress);
+
+        if (coords) {
+          setDeliveryLocation(coords);
+        } else {
+          console.warn("Could not geocode delivery address.");
+        }
+      } catch (err) {
+        console.error("Geocoding error:", err);
+      } finally {
+        setGeocoding(false);
+      }
+    };
+    
+    geocodeDelivery();
+  }, [checkoutData]);
+
+  if (!checkoutData || !checkoutData.name) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#121212] flex items-center justify-center">
+        <p className="text-gray-600 dark:text-gray-400">Redirecting to checkout...</p>
+      </div>
+    );
+  }
 
   const handlePlanRoute = async () => {
     setRouteLoading(true);
     setRouteError("");
 
     try {
-      const fullAddress = `${user.address}, ${user.county}`;
+      const fullAddress = `${checkoutData.address}, ${checkoutData.county}`;
       const coords = await geocodeAddress(fullAddress);
 
       if (!coords) {
@@ -62,7 +102,6 @@ export default function OrderReview() {
     <div className="min-h-screen bg-white dark:bg-[#121212] text-gray-800 dark:text-gray-200 py-16 px-6 md:px-20 transition-colors duration-300 font-adamina">
       <div className="max-w-5xl mx-auto space-y-12">
 
-        {/* Title */}
         <motion.div
           className="text-center"
           initial={{ opacity: 0, y: -20 }}
@@ -77,10 +116,7 @@ export default function OrderReview() {
           </p>
         </motion.div>
 
-        {/* Summary Section */}
         <div className="grid md:grid-cols-2 gap-10">
-
-          {/* Order Summary */}
           <motion.div
             className="bg-gray-50 dark:bg-[#1E1E1E] rounded-2xl shadow-lg p-8"
             initial={{ opacity: 0, x: -50 }}
@@ -91,9 +127,9 @@ export default function OrderReview() {
               Order Summary
             </h2>
 
-            {cartItems.map((item) => (
+            {cartItems.map((item, index) => (
               <div
-                key={item.id}
+                key={item.id || index}
                 className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-600 pb-3"
               >
                 <div>
@@ -112,7 +148,6 @@ export default function OrderReview() {
             </div>
           </motion.div>
 
-          {/* Shipping Info */}
           <motion.div
             className="bg-gray-50 dark:bg-[#1E1E1E] rounded-2xl shadow-lg p-8"
             initial={{ opacity: 0, x: 50 }}
@@ -124,16 +159,15 @@ export default function OrderReview() {
             </h2>
 
             <div className="space-y-3 text-gray-700 dark:text-gray-300">
-              <p><strong>Name:</strong> {user.name}</p>
-              <p><strong>Email:</strong> {user.email}</p>
-              <p><strong>Address:</strong> {user.address}</p>
-              <p><strong>County:</strong> {user.county}</p>
-              <p><strong>Payment:</strong> {user.payment}</p>
+              <p><strong>Name:</strong> {checkoutData.name}</p>
+              <p><strong>Email:</strong> {checkoutData.email}</p>
+              <p><strong>Address:</strong> {checkoutData.address}</p>
+              <p><strong>County:</strong> {checkoutData.county}</p>
+              <p><strong>Payment:</strong> {checkoutData.payment}</p>
             </div>
           </motion.div>
         </div>
 
-        {/* Route Map */}
         <motion.div
           className="bg-gray-50 dark:bg-[#1E1E1E] rounded-2xl p-8 shadow-lg"
           initial={{ opacity: 0, y: 20 }}
@@ -145,20 +179,39 @@ export default function OrderReview() {
           </h2>
 
           <div className="w-full h-64 bg-gray-200 dark:bg-[#333] rounded-xl overflow-hidden mb-4 flex items-center justify-center">
-            {routeResult ? (
-              <DeliveryRouteMap
-                farmers={routeResult.farmers}
-                buyer={routeResult.buyer}
-                routeOrder={routeResult.routeOrder}
-              />
+            {geocoding ? (
+              <p className="text-gray-600 dark:text-gray-400">Locating your delivery address...</p>
+            ) : deliveryLocation ? (
+              routeResult ? (
+                <DeliveryRouteMap
+                  farmers={routeResult.farmers}
+                  buyer={routeResult.buyer}
+                  routeOrder={routeResult.routeOrder}
+                />
+              ) : (
+                <DeliveryRouteMap
+                  initialLocation={deliveryLocation}
+                  locationType="delivery"
+                />
+              )
             ) : (
               <p className="text-gray-600 dark:text-gray-400">
-                Click "Plan Route" to preview your delivery path.
+                Unable to locate delivery address on map
               </p>
             )}
           </div>
 
-          {/* Distance + Time */}
+          {deliveryLocation && !routeResult && (
+            <div className="text-center mb-4">
+              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                ✓ Delivery location confirmed
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {checkoutData.address}, {checkoutData.county}
+              </p>
+            </div>
+          )}
+
           {routeResult && (
             <div className="text-center mb-3 text-sm text-gray-700 dark:text-gray-300">
               <p>
@@ -182,14 +235,13 @@ export default function OrderReview() {
             <button
               onClick={handlePlanRoute}
               className="px-6 py-2 bg-[#3B1F0E] dark:bg-amber-600 text-white rounded-lg hover:opacity-90 shadow-md transition"
-              disabled={routeLoading}
+              disabled={routeLoading || !deliveryLocation}
             >
               {routeLoading ? "Loading Route..." : "Plan Route"}
             </button>
           </div>
         </motion.div>
 
-        {/* Navigation Buttons */}
         <div className="flex flex-col md:flex-row gap-4 justify-center mt-10">
           <Link
             to="/buyer/checkout"
@@ -210,3 +262,5 @@ export default function OrderReview() {
     </div>
   );
 }
+
+

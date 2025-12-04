@@ -21,7 +21,7 @@ const getAllProducts = asyncHandler(async (req, res, next) => {
   
   query = query.populate({
     path: 'farmerId',
-    select: 'firstName lastName location averageRating totalSales'
+    select: '_id name county location latitude longitude averageRating totalSales'
   });
 
   if (req.query.sort) {
@@ -75,7 +75,7 @@ const getProduct = asyncHandler(async (req, res, next) => {
   const product = await Product.findById(req.params.id)
     .populate({
       path: 'farmerId',
-      select: 'firstName lastName location averageRating totalSales contactInfo'
+      select: '_id name county location latitude longitude averageRating totalSales contactInfo'
     });
 
   if (!product) {
@@ -93,33 +93,32 @@ const getProduct = asyncHandler(async (req, res, next) => {
 });
 
 const createProduct = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findOne({ _id: req.body.farmerId, role: 'farmer' });
+  const farmer = await mongoose.connection.db.collection('farmers')
+    .findOne({ _id: new mongoose.Types.ObjectId(req.body.farmerId) });
+    
   if (!farmer) {
-    return next(new AppError('Farmer not found or not a valid farmer', 404));
+    return next(new AppError('Farmer not found', 404));
   }
 
   if (farmer.isVerified === false) {
     return next(new AppError('Only verified farmers can create products', 403));
   }
 
-  //  security check if logged-in user is a farmer
   if (req.user && req.user.role === 'farmer' && req.user.id !== req.body.farmerId) {
     return next(new AppError('Farmers can only create products for themselves', 403));
   }
 
   const product = await Product.create(req.body);
 
-  //unique QR code 
   const productUrl = `${process.env.FRONTEND_URL}/trace/${product._id}`;
   const qrCodeDataUrl = await QRCode.toDataURL(productUrl);
 
   product.qrCode = qrCodeDataUrl;
   await product.save();
 
-  
   await product.populate({
     path: 'farmerId',
-    select: 'firstName lastName location averageRating'
+    select: '_id name county location latitude longitude averageRating'
   });
 
   res.status(201).json({
@@ -148,7 +147,7 @@ const updateProduct = asyncHandler(async (req, res, next) => {
     runValidators: true
   }).populate({
     path: 'farmerId',
-    select: 'firstName lastName location averageRating'
+    select: '_id name county location latitude longitude averageRating'
   });
 
   res.status(200).json({
@@ -239,9 +238,8 @@ const searchProducts = asyncHandler(async (req, res, next) => {
     aggregationPipeline.push({
       $match: {
         $or: [
-          { 'farmer.location.county': { $regex: location, $options: 'i' } },
-          { 'farmer.location.subCounty': { $regex: location, $options: 'i' } },
-          { 'farmer.location.ward': { $regex: location, $options: 'i' } }
+          { 'farmer.county': { $regex: location, $options: 'i' } },
+          { 'farmer.nearestTown': { $regex: location, $options: 'i' } }
         ]
       }
     });
@@ -255,15 +253,15 @@ const searchProducts = asyncHandler(async (req, res, next) => {
         roastLevel: 1,
         processingMethod: 1,
         price: 1,
-        quantityAvailable: 1,
+        quantity: 1,
         description: 1,
         flavorNotes: 1,
         averageRating: 1,
         totalReviews: 1,
         images: 1,
         createdAt: 1,
-        'farmer.firstName': 1,
-        'farmer.lastName': 1,
+        'farmer.name': 1,
+        'farmer.county': 1,
         'farmer.location': 1,
         'farmer.averageRating': 1
       }
@@ -319,7 +317,7 @@ const getProductStats = asyncHandler(async (req, res, next) => {
         _id: null,
         totalProducts: { $sum: 1 },
         averagePrice: { $avg: '$price' },
-        totalQuantity: { $sum: '$quantityAvailable' },
+        totalQuantity: { $sum: '$quantity' },
         averageRating: { $avg: '$averageRating' }
       }
     }
@@ -334,7 +332,7 @@ const getProductStats = asyncHandler(async (req, res, next) => {
         _id: '$variety',
         count: { $sum: 1 },
         averagePrice: { $avg: '$price' },
-        totalQuantity: { $sum: '$quantityAvailable' }
+        totalQuantity: { $sum: '$quantity' }
       }
     },
     { $sort: { count: -1 } }
@@ -368,7 +366,7 @@ const getProductStats = asyncHandler(async (req, res, next) => {
           month: { $month: '$createdAt' }
         },
         count: { $sum: 1 },
-        totalValue: { $sum: { $multiply: ['$price', '$quantityAvailable'] } }
+        totalValue: { $sum: { $multiply: ['$price', '$quantity'] } }
       }
     },
     { $sort: { '_id.year': -1, '_id.month': -1 } },
@@ -398,9 +396,11 @@ const getFarmerProducts = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid farmer ID', 400));
   }
 
-  const farmer = await User.findOne({ _id: farmerId, role: 'farmer' });
+  const farmer = await mongoose.connection.db.collection('farmers')
+    .findOne({ _id: new mongoose.Types.ObjectId(farmerId) });
+    
   if (!farmer) {
-    return next(new AppError('Farmer not found or not a valid farmer', 404));
+    return next(new AppError('Farmer not found', 404));
   }
 
   const queryObj = { ...req.query };
@@ -458,7 +458,7 @@ const getFarmerProducts = asyncHandler(async (req, res, next) => {
     pagination,
     farmer: {
       id: farmer._id,
-      name: `${farmer.firstName} ${farmer.lastName}`,
+      name: farmer.name,
       location: farmer.location,
       averageRating: farmer.averageRating
     },
@@ -483,13 +483,11 @@ const updateProductStock = asyncHandler(async (req, res, next) => {
     return next(new AppError('Not authorized to update this product stock', 403));
   }
 
-  product.quantityAvailable = quantity;
+  product.quantity = quantity;
   if (quantity === 0) {
-    product.stockStatus = 'Out of Stock';
-  } else if (quantity <= 10) {
-    product.stockStatus = 'Low Stock';
+    product.status = 'OutOfStock';
   } else {
-    product.stockStatus = 'In Stock';
+    product.status = 'Available';
   }
 
   await product.save();

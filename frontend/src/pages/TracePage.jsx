@@ -38,7 +38,7 @@ export default function TracePage() {
           <p className="text-red-600 text-lg font-semibold mb-4">
             {error || "Product not found"}
           </p>
-          <Link to="/marketplace" className="text-[#360816] underline">
+          <Link to="/buyer/marketplace" className="text-[#360816] underline">
             Return to Marketplace
           </Link>
         </div>
@@ -216,7 +216,7 @@ export default function TracePage() {
 
       <div className="text-center mt-10">
         <Link
-          to="/marketplace"
+          to="/buyer/marketplace"
           className="inline-block bg-[#360816] text-white px-8 py-3 rounded-md hover:bg-[#4a0a20] transition font-semibold"
         >
           ← Back to Marketplace

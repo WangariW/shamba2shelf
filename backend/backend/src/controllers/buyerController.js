@@ -15,8 +15,6 @@ const getAllBuyers = asyncHandler(async (req, res, next) => {
   
   let query = Buyer.find(JSON.parse(queryStr));
 
-  //query = query.find({ isActive: true, isVerified: true });
-
   query = query.select('-password -refreshTokens -verificationToken -passwordResetToken -loginAttempts -lockUntil');
 
   if (req.query.sort) {
@@ -116,7 +114,7 @@ const getBuyer = asyncHandler(async (req, res, next) => {
 const updateBuyerProfile = asyncHandler(async (req, res, next) => {
   const buyerId = req.params.id;
 
-  if (req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (req.user && req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
     return next(new AppError('You can only update your own profile', 403));
   }
 
@@ -157,7 +155,7 @@ const updateBuyerProfile = asyncHandler(async (req, res, next) => {
 const deleteBuyer = asyncHandler(async (req, res, next) => {
   const buyerId = req.params.id;
 
-  if (req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (req.user && req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
     return next(new AppError('You can only delete your own profile', 403));
   }
 
@@ -186,7 +184,7 @@ const deleteBuyer = asyncHandler(async (req, res, next) => {
 const getBuyerOrders = asyncHandler(async (req, res, next) => {
   const buyerId = req.params.id;
 
-  if (req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (req.user && req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
     return next(new AppError('You can only view your own orders', 403));
   }
 
@@ -199,7 +197,8 @@ const getBuyerOrders = asyncHandler(async (req, res, next) => {
   
   let query = Order.find(JSON.parse(queryStr));
 
-  query = query.populate('farmerId', 'name email phone county');
+  query = query.populate('productId', 'name price variety')
+               .populate('farmerId', 'name email phone county');
 
   if (req.query.sort) {
     const sortBy = req.query.sort.split(',').join(' ');
@@ -250,7 +249,7 @@ const getBuyerOrders = asyncHandler(async (req, res, next) => {
 const getBuyerAnalytics = asyncHandler(async (req, res, next) => {
   const buyerId = req.params.id;
 
-  if (req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (req.user && req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
     return next(new AppError('You can only view your own analytics', 403));
   }
 
@@ -451,7 +450,7 @@ const getTopRatedBuyers = asyncHandler(async (req, res, next) => {
 const getBuyerRecommendations = asyncHandler(async (req, res, next) => {
   const buyerId = req.params.id;
 
-  if (req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (req.user && req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
     return next(new AppError('You can only view your own recommendations', 403));
   }
 
@@ -564,7 +563,7 @@ const updateVerificationStatus = asyncHandler(async (req, res, next) => {
 const getBuyerDashboard = asyncHandler(async (req, res, next) => {
   const buyerId = req.params.id;
 
-  if (req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (req.user && req.user.id !== buyerId && !['admin', 'superadmin'].includes(req.user.role)) {
     return next(new AppError('You can only view your own dashboard', 403));
   }
 

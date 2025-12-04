@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Sun, Moon, Quote } from "lucide-react";
 import heroImage from "../assets/images/plantation.jpg";
 import aboutImage from "../assets/images/coffeepicking1.jpg";
 import coffeeSortingImage from "../assets/images/coffee-sorting.jpg";
@@ -10,13 +9,12 @@ import Carousel from "../components/Carousel.jsx";
 import farmerImage from "../assets/images/farmer-2.jpg";
 
 export default function Home() {
-  const [dark, setDark] = useState(false);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 300], [0, -50]);
   const y2 = useTransform(scrollY, [0, 400], [0, -100]);
   const [stats, setStats] = useState({ farmers: 0, buyers: 0, batches: 0 });
 
-  // Smooth stat counters
+  
   useEffect(() => {
     const timeout = setTimeout(() => {
       setStats({ farmers: 120, buyers: 350, batches: 1247 });
@@ -24,21 +22,12 @@ export default function Home() {
     return () => clearTimeout(timeout);
   }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
-
+  
   return (
     <div className="min-h-screen bg-white text-gray-800 dark:bg-[#1f1b18] dark:text-gray-100 transition-colors duration-500 overflow-x-hidden">
-      {/* 🔘 Theme Toggle */}
-      <button
-        onClick={() => setDark((prev) => !prev)}
-        className="fixed top-6 right-6 z-50 bg-[#3B1F0E] dark:bg-amber-400 text-white dark:text-[#3B1F0E] p-3 rounded-full shadow-lg hover:scale-105 transition"
-      >
-        {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
+      
 
-      {/* 🏔 Hero Section */}
+      {/*Hero  */}
       <motion.section
         className="relative w-full h-[90vh] flex items-center justify-center overflow-hidden"
         style={{
@@ -90,7 +79,7 @@ export default function Home() {
         </motion.div>
       </motion.section>
 
-      {/* 🌿 About Section */}
+      {/* About */}
       <section className="py-24 px-6 md:px-20 space-y-24 bg-gradient-to-b from-[#fff] to-[#f9f6f3] dark:from-[#1f1b18] dark:to-[#14110e]">
         <div className="flex flex-col md:flex-row items-center gap-10">
           <motion.img
@@ -118,7 +107,7 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Empowering Farmers */}
+      
         <div className="flex flex-col md:flex-row-reverse items-center gap-10">
           <motion.img
             src={coffeeSortingImage}
@@ -147,7 +136,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 📊 Stats Section */}
+      {/*  Impact Stats */}
       <motion.section
         className="py-20 bg-[#3B1F0E] dark:bg-[#2A140A] text-white text-center"
         initial={{ opacity: 0, y: 40 }}
@@ -181,24 +170,24 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* 💬 Testimonials Carousel */}
+      {/* Carousel */}
       <section className="bg-[#F9F6F3] dark:bg-[#2A241F] py-20 px-6 md:px-20">
-  <motion.h2
-    className="text-4xl font-bold text-center mb-12 text-[#3B1F0E] dark:text-amber-400 font-archivo"
-    initial={{ opacity: 0, y: 30 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.7 }}
-    viewport={{ once: true }}
-  >
-    What Our Community Says
-  </motion.h2>
+        <motion.h2
+          className="text-4xl font-bold text-center mb-12 text-[#3B1F0E] dark:text-amber-400 font-archivo"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+          viewport={{ once: true }}
+        >
+          What Our Community Says
+        </motion.h2>
 
-  <Carousel />
-</section>
+        <Carousel />
+      </section>
 
     
 
-      {/* ☕ CTA */}
+      
       <motion.section
         className="bg-[#5e391c] dark:bg-[#2f1b0f] py-20 text-white text-center rounded-t-3xl"
         initial={{ opacity: 0, y: 50 }}
@@ -220,7 +209,7 @@ export default function Home() {
         </Link>
       </motion.section>
 
-      {/* 🧩 Footer */}
+      
       <footer className="bg-[#7d7d80] dark:bg-[#1a1a1a] text-gray-300 py-10 px-6 md:px-20">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center md:text-left">
           <div>

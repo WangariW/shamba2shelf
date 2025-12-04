@@ -1,6 +1,7 @@
 const express = require('express');
 const upload = require("../middleware/uploadMiddleware");
 const { uploadFarmerPhoto } = require("../controllers/farmerUploadController");
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 const {
   getAllFarmers,
@@ -32,18 +33,18 @@ router.get('/top-rated', getTopRatedFarmers);
 router.get('/search/location', validateLocation, searchFarmersByLocation);
 router.get('/county/:county', validateCounty, getFarmersByCounty);
 
-router.get('/:id', getFarmer);
-router.get('/:id/products', getFarmerProducts);
-router.get('/:id/dashboard', getFarmerDashboard);
-router.get('/:id/orders', getFarmerOrders);
-router.get('/:id/analytics', getFarmerAnalytics);
+router.get('/:id', protect, getFarmer);
+router.get('/:id/products', protect, getFarmerProducts);
+router.get('/:id/dashboard', protect,  getFarmerDashboard);
+router.get('/:id/orders', protect, getFarmerOrders);
+router.get('/:id/analytics', protect, getFarmerAnalytics);
 
-router.put('/:id', validateFarmerUpdate, updateFarmerProfile);
-router.put('/:id/location', validateLocationUpdate, updateLocation);
+router.put('/:id', protect, restrictTo('farmer'), validateFarmerUpdate, updateFarmerProfile);
+router.put('/:id/location', protect, restrictTo('farmer'), validateLocationUpdate, updateLocation);
 
-router.delete('/:id', deleteFarmer);
+router.delete('/:id', protect, restrictTo('farmer', 'admin'), deleteFarmer);
 
-router.put('/:id/verify', updateVerificationStatus);
-router.post('/:id/photo', upload.single('photo'), uploadFarmerPhoto);
+router.put('/:id/verify', protect, restrictTo('admin'),updateVerificationStatus);
+router.post('/:id/photo', protect, restrictTo('farmer'),upload.single('photo'), uploadFarmerPhoto);
 
 module.exports = router;

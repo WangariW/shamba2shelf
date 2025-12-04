@@ -1,3 +1,5 @@
+console.log("🔧 routeOptimizer.js - Loading...");
+
 function computeOptimalRoute(matrix, farmersCount) {
   const distanceMatrix = matrix.distances;
   const durationMatrix = matrix.durations;
@@ -33,5 +35,6 @@ function computeOptimalRoute(matrix, farmersCount) {
 
   return { route, totalDistance, totalDuration };
 }
+console.log("✅ routeOptimizer.js - Function exported");
 
 module.exports = computeOptimalRoute;

@@ -47,53 +47,7 @@ const customValidators = {
     }
     return true;
   },
-  
-  uniqueArray: (value) => {
-    if (Array.isArray(value)) {
-      const uniqueValues = [...new Set(value)];
-      if (uniqueValues.length !== value.length) {
-        throw new Error('Array must contain unique values');
-      }
-    }
-    return true;
-  },
-  
-  noSqlInjection: (value) => {
-    const sqlPatterns = [
-      /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
-      /(--|\/\*|\*\/|;)/,
-      /(\bOR\b|\bAND\b).*=.*=/i
-    ];
-    
-    if (typeof value === 'string') {
-      for (const pattern of sqlPatterns) {
-        if (pattern.test(value)) {
-          throw new Error('Invalid characters detected');
-        }
-      }
-    }
-    return true;
-  },
-  
-  noXSS: (value) => {
-    const xssPatterns = [
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      /javascript:/gi,
-      /on\w+\s*=/gi,
-      /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi
-    ];
-    
-    if (typeof value === 'string') {
-      for (const pattern of xssPatterns) {
-        if (pattern.test(value)) {
-          throw new Error('Invalid content detected');
-        }
-      }
-    }
-    return true;
-  },
 
-  // Farmer-specific validators
   validKenyanPhone: (value) => {
     const phoneRegex = /^\+254[0-9]{9}$/;
     if (!phoneRegex.test(value)) {
@@ -107,20 +61,11 @@ const customValidators = {
     if (typeof latitude !== 'number' || typeof longitude !== 'number') {
       throw new Error('Coordinates must be numbers');
     }
-    // Kenya boundaries
-    if (latitude < -1.7 || latitude > 5.0) {
-      throw new Error('Latitude must be within Kenya boundaries (-1.7 to 5.0)');
+    if (latitude < -4.7 || latitude > 5.0) {
+      throw new Error('Latitude must be within Kenya boundaries (-4.7 to 5.0)');
     }
     if (longitude < 33.9 || longitude > 41.9) {
       throw new Error('Longitude must be within Kenya boundaries (33.9 to 41.9)');
-    }
-    return true;
-  },
-
-  validCoffeeCounty: (value) => {
-    const validCounties = ['Nyeri', 'Kiambu', 'Murang\'a', 'Kirinyaga', 'Embu', 'Meru', 'Machakos', 'Nakuru'];
-    if (!validCounties.includes(value)) {
-      throw new Error('County must be one of the major coffee growing regions');
     }
     return true;
   },
@@ -166,14 +111,12 @@ const customValidators = {
   }
 };
 
-// Farmer validation rules
 const validateFarmerUpdate = [
   body('name')
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Name must be between 2 and 100 characters'),
 
   body('phone')
     .optional()
@@ -181,7 +124,9 @@ const validateFarmerUpdate = [
 
   body('county')
     .optional()
-    .custom(customValidators.validCoffeeCounty),
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('County must be between 2 and 50 characters'),
 
   body('location')
     .optional()
@@ -191,8 +136,7 @@ const validateFarmerUpdate = [
     .optional()
     .trim()
     .isLength({ max: 1000 })
-    .withMessage('Brand story cannot exceed 1000 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Brand story cannot exceed 1000 characters'),
 
   body('farmSize')
     .optional()
@@ -209,8 +153,7 @@ const validateFarmerUpdate = [
   body('certifications')
     .optional()
     .isArray()
-    .withMessage('Certifications must be an array')
-    .custom(customValidators.uniqueArray),
+    .withMessage('Certifications must be an array'),
 
   body('certifications.*')
     .optional()
@@ -224,8 +167,7 @@ const validateFarmerUpdate = [
   body('varietiesGrown')
     .optional()
     .isArray()
-    .withMessage('Varieties grown must be an array')
-    .custom(customValidators.uniqueArray),
+    .withMessage('Varieties grown must be an array'),
 
   body('varietiesGrown.*')
     .optional()
@@ -235,8 +177,7 @@ const validateFarmerUpdate = [
   body('processingMethods')
     .optional()
     .isArray()
-    .withMessage('Processing methods must be an array')
-    .custom(customValidators.uniqueArray),
+    .withMessage('Processing methods must be an array'),
 
   body('processingMethods.*')
     .optional()
@@ -271,8 +212,7 @@ const validateFarmerUpdate = [
   body('sustainabilityPractices')
     .optional()
     .isArray()
-    .withMessage('Sustainability practices must be an array')
-    .custom(customValidators.uniqueArray),
+    .withMessage('Sustainability practices must be an array'),
 
   body('sustainabilityPractices.*')
     .optional()
@@ -306,7 +246,7 @@ const validateLocation = [
   query('latitude')
     .notEmpty()
     .withMessage('Latitude is required')
-    .isFloat({ min: -1.7, max: 5.0 })
+    .isFloat({ min: -4.7, max: 5.0 })
     .withMessage('Latitude must be within Kenya boundaries'),
 
   query('longitude')
@@ -343,7 +283,9 @@ const validateCounty = [
   param('county')
     .notEmpty()
     .withMessage('County is required')
-    .custom(customValidators.validCoffeeCounty),
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('County name must be between 2 and 50 characters'),
 
   validateRequest
 ];
@@ -354,8 +296,7 @@ const validateProductData = [
     .withMessage('Product name is required')
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('Product name must be between 2 and 100 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Product name must be between 2 and 100 characters'),
 
   body('variety')
     .notEmpty()
@@ -396,23 +337,12 @@ const validateProductData = [
     .optional()
     .trim()
     .isLength({ max: 1000 })
-    .withMessage('Description cannot exceed 1000 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Description cannot exceed 1000 characters'),
 
   body('flavorNotes')
     .optional()
-    .custom((value, { req } ) => {
-      const notes = req.body.flavorNotes;
-
-      if (!notes) return true;
-      if (!Array.isArray(notes)) return true;
-      if (typeof notes === 'string') {
-        req.body.flavorNotes = [notes];
-        return true;
-  
-      }
-      throw new Error('Flavor notes must be an array or a comma-separated string');
-    }),
+    .isArray()
+    .withMessage('Flavor notes must be an array'),
 
   body('flavorNotes.*')
     .optional()
@@ -473,16 +403,14 @@ const validateOrderCreate = [
     .withMessage('Street address is required')
     .trim()
     .isLength({ min: 5, max: 200 })
-    .withMessage('Street address must be between 5 and 200 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Street address must be between 5 and 200 characters'),
 
   body('deliveryAddress.city')
     .notEmpty()
     .withMessage('City is required')
     .trim()
     .isLength({ min: 2, max: 50 })
-    .withMessage('City must be between 2 and 50 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('City must be between 2 and 50 characters'),
 
   body('deliveryAddress.county')
     .notEmpty()
@@ -492,14 +420,14 @@ const validateOrderCreate = [
     .withMessage('County must be between 2 and 50 characters'),
 
   body('deliveryAddress.postalCode')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isLength({ min: 4, max: 10 })
     .withMessage('Postal code must be between 4 and 10 characters'),
 
   body('deliveryAddress.coordinates.latitude')
     .optional()
-    .isFloat({ min: -1.7, max: 5.0 })
+    .isFloat({ min: -4.7, max: 5.0 })
     .withMessage('Latitude must be within Kenya boundaries'),
 
   body('deliveryAddress.coordinates.longitude')
@@ -536,8 +464,7 @@ const validatePaymentStatusUpdate = [
     .optional()
     .trim()
     .isLength({ min: 3, max: 100 })
-    .withMessage('Payment reference must be between 3 and 100 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Payment reference must be between 3 and 100 characters'),
 
   validateRequest
 ];
@@ -547,8 +474,7 @@ const validateOrderCancel = [
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Cancellation reason cannot exceed 500 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Cancellation reason cannot exceed 500 characters'),
 
   validateRequest
 ];
@@ -558,8 +484,7 @@ const validateBuyerUpdate = [
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Name must be between 2 and 100 characters'),
 
   body('phone')
     .optional()
@@ -575,39 +500,37 @@ const validateBuyerUpdate = [
     .optional()
     .trim()
     .isLength({ min: 2, max: 150 })
-    .withMessage('Business name must be between 2 and 150 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Business name must be between 2 and 150 characters'),
 
   body('businessLicense')
     .optional()
     .trim()
     .isLength({ min: 5, max: 50 })
-    .withMessage('Business license must be between 5 and 50 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Business license must be between 5 and 50 characters'),
 
   body('deliveryAddress.street')
     .optional()
     .trim()
     .isLength({ min: 5, max: 200 })
-    .withMessage('Street address must be between 5 and 200 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('Street address must be between 5 and 200 characters'),
 
   body('deliveryAddress.city')
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('City must be between 2 and 100 characters')
-    .custom(customValidators.noXSS),
+    .withMessage('City must be between 2 and 100 characters'),
 
   body('deliveryAddress.county')
     .optional()
-    .isIn(['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Thika', 'Malindi', 'Nyeri', 'Kiambu', 'Murang\'a', 'Kirinyaga', 'Embu', 'Meru', 'Machakos'])
-    .withMessage('Invalid county'),
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('County must be between 2 and 50 characters'),
 
   body('deliveryAddress.postalCode')
-    .optional()
-    .matches(/^[0-9]{5}$/)
-    .withMessage('Postal code must be 5 digits'),
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 4, max: 10 })
+    .withMessage('Postal code must be between 4 and 10 characters'),
 
   body('deliveryAddress.coordinates.latitude')
     .optional()

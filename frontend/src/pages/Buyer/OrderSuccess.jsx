@@ -1,9 +1,128 @@
 /* eslint-disable no-unused-vars */
-import React from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../../api/axios";
+import { useAuth } from "../../context/useAuth";
+import OrderContext from "../../context/OrderContext";
+import CartContext from "../../context/CartContext";
 
 export default function OrderSuccess() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { checkoutData } = useContext(OrderContext);
+  const { cartItems, clearCart } = useContext(CartContext);
+  
+  const [orderIds, setOrderIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  const ordersCreatedRef = useRef(false);
+
+  useEffect(() => {
+    // Prevent duplicate order creation
+    if (ordersCreatedRef.current) return;
+    ordersCreatedRef.current = true;
+
+    const createOrders = async () => {
+      // Validate required data
+      if (!checkoutData || !checkoutData.name || cartItems.length === 0) {
+        navigate("/buyer/checkout");
+        return;
+      }
+
+      const buyerId = user?._id || user?.id;
+      if (!buyerId) {
+        setError("User not authenticated. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log("Creating orders for buyer:", buyerId);
+        console.log("Cart items:", cartItems);
+
+        // Create an order for each cart item
+        const orderPromises = cartItems.map(async (item) => {
+          // Validate farmerId
+          if (!item.farmerId) {
+            console.warn("Item missing farmerId:", item);
+            throw new Error(`Product "${item.name}" is missing farmer information`);
+          }
+
+          const orderData = {
+            buyerId: buyerId,
+            farmerId: item.farmerId,
+            productId: item._id || item.id,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            totalAmount: item.price * item.quantity,
+            status: "Pending",
+            paymentMethod: checkoutData.payment === "mpesa" ? "M-Pesa" : 
+                          checkoutData.payment === "card" ? "Card" : 
+                          checkoutData.payment === "bank" ? "Bank Transfer" : "Cash",
+            paymentStatus: "Pending",
+            deliveryAddress: {
+              street: checkoutData.address,
+              city: checkoutData.county,
+              county: checkoutData.county,
+              postalCode: ""
+            },
+            buyerNotes: ""
+          };
+
+          console.log("Creating order:", orderData);
+
+          const response = await api.post("/orders", orderData);
+          return response.data._id || response.data.data?._id;
+        });
+
+        const createdOrderIds = await Promise.all(orderPromises);
+        console.log("Orders created successfully:", createdOrderIds);
+        
+        setOrderIds(createdOrderIds);
+        
+        // Clear cart after successful order creation
+        clearCart();
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to create orders:", err);
+        setError(err.message || "Failed to create order. Please contact support.");
+        setLoading(false);
+      }
+    };
+
+    createOrders();
+  }, [cartItems, checkoutData, user, navigate, clearCart]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#121212] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[#3B1F0E] dark:border-amber-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Processing your order...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#121212] flex items-center justify-center px-6">
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-8 max-w-md">
+          <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Order Failed</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
+          <Link
+            to="/buyer/checkout"
+            className="block text-center bg-[#3B1F0E] dark:bg-amber-600 text-white px-6 py-3 rounded-md hover:opacity-90"
+          >
+            Try Again
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#121212] text-gray-800 dark:text-gray-200 flex items-center justify-center px-6 py-16 transition-colors duration-300">
       <motion.div
@@ -51,8 +170,8 @@ export default function OrderSuccess() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          Thank you for your purchase! We’re preparing your coffee for delivery.
-          You’ll receive an email confirmation shortly.
+          Thank you for your purchase! We're preparing your coffee for delivery.
+          You'll receive an email confirmation shortly.
         </motion.p>
 
         {/* Order Summary Card */}
@@ -66,10 +185,16 @@ export default function OrderSuccess() {
             Order Details
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            <strong>Order ID:</strong> #S2S-93241
+            <strong>Orders Created:</strong> {orderIds.length}
           </p>
+          {orderIds.length > 0 && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              <strong>Order ID:</strong> #{orderIds[0].slice(-8)}
+              {orderIds.length > 1 && ` (+${orderIds.length - 1} more)`}
+            </p>
+          )}
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            <strong>Payment:</strong> M-Pesa
+            <strong>Payment:</strong> {checkoutData?.payment?.toUpperCase() || "M-Pesa"}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             <strong>Delivery:</strong> Estimated 2–3 business days
@@ -84,16 +209,16 @@ export default function OrderSuccess() {
           transition={{ delay: 0.8 }}
         >
           <Link
-            to="/buyer/marketplace"
+            to="/buyer/dashboard"
             className="bg-[#3B1F0E] dark:bg-amber-600 text-white px-6 py-3 rounded-md hover:bg-[#291208] dark:hover:bg-amber-700 transition font-semibold"
           >
-            Continue Shopping
+            View Orders
           </Link>
           <Link
-            to="/"
+            to="/buyer/marketplace"
             className="border border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition font-semibold"
           >
-            Back to Home
+            Continue Shopping
           </Link>
         </motion.div>
       </motion.div>

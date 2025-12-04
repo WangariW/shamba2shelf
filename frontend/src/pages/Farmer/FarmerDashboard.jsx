@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import ChatBotWidget from "../../components/ChatBotWidget";
 import NotificationsPanel from "../../components/NotificationsPanel";
 import AddProductModal from "../../components/AddProductModal";
@@ -36,10 +36,13 @@ export default function FarmerDashboard() {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const farmerId = localStorage.getItem("userId") || "690a1ef06538883429160a19";
+  const farmerId = localStorage.getItem("userId") ;
+
 
   useEffect(() => {
     async function loadProfile() {
+      if (!farmerId) return;
+
       try {
         const res = await api.get(`/farmers/${farmerId}`);
         const f = res.data?.data?.farmer;
@@ -47,7 +50,7 @@ export default function FarmerDashboard() {
           setFarmer(f);
           setFarmerLocation({
             county: f.county,
-            town: f.town,
+            town: f.nearestTown,
             pickupPoint: f.pickupPoint,
           });
         }
@@ -59,8 +62,9 @@ export default function FarmerDashboard() {
   }, [farmerId]);
 
   useEffect(() => {
+    if (!farmerId) return;
     loadProducts();
-  }, []);
+  }, [farmerId]);
 
   const loadProducts = async () => {
     try {
@@ -112,6 +116,10 @@ export default function FarmerDashboard() {
     return () => document.removeEventListener("mousedown", closeDropdown);
   }, []);
 
+  if (!farmerId) {
+    return <Navigate to="/login" replace />;
+  }
+
   const handleMarkRead = (id) =>
     setNotifications((prev) =>
       prev.map((note) => (note.id === id ? { ...note, read: true } : note))
@@ -136,7 +144,7 @@ export default function FarmerDashboard() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            Welcome, {farmer?.firstName || "Farmer"}!
+            Welcome, {farmer?.name || "Farmer"}!
           </motion.h1>
 
           <p className="text-gray-600 dark:text-gray-400">
@@ -149,7 +157,7 @@ export default function FarmerDashboard() {
                 Your Pickup Location
               </h2>
               <p><strong>County:</strong> {farmerLocation.county}</p>
-              <p><strong>Town:</strong> {farmerLocation.town}</p>
+              <p><strong>Town:</strong> {farmerLocation.nearestTown}</p>
               <p><strong>Pickup Point:</strong> {farmerLocation.pickupPoint}</p>
             </div>
           )}

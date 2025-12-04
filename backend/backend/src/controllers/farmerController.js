@@ -1,19 +1,13 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const townCoordinates = require("../config/townCoordinates");
 const AppError = require('../utils/AppError');
 const { asyncHandler } = require('../utils/asyncHandler');
-const mongoose = require('mongoose');
 
 const getAllFarmers = asyncHandler(async (req, res, next) => {
-  const queryObj = { ...req.query };
-
-  let queryStr = JSON.stringify(queryObj);
-  queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
-
-  const farmers = await User.find({ role: "farmer", ...JSON.parse(queryStr) })
-    .select("name email county town pickupPoint role");
+  const farmers = await mongoose.connection.db.collection('farmers').find({}).toArray();
 
   res.status(200).json({
     success: true,
@@ -23,9 +17,8 @@ const getAllFarmers = asyncHandler(async (req, res, next) => {
 });
 
 const getFarmer = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findById(req.params.id).select(
-    "name email county town pickupPoint role"
-  );
+  const farmer = await mongoose.connection.db.collection('farmers')
+    .findOne({ _id: new mongoose.Types.ObjectId(req.params.id) });
 
   if (!farmer) {
     return next(new AppError("Farmer not found", 404));
@@ -39,7 +32,7 @@ const getFarmer = asyncHandler(async (req, res, next) => {
 
 const updateFarmerProfile = asyncHandler(async (req, res, next) => {
   const allowedFields = [
-    "name", "email", "county", "town", "pickupPoint"
+    "name", "email", "county", "nearestTown", "pickupPoint"
   ];
 
   const updateObj = {};
@@ -47,27 +40,29 @@ const updateFarmerProfile = asyncHandler(async (req, res, next) => {
     if (allowedFields.includes(key)) updateObj[key] = req.body[key];
   });
 
-  const farmer = await User.findByIdAndUpdate(
-    req.params.id,
-    updateObj,
-    { new: true, runValidators: true }
-  ).select("name email county town pickupPoint role");
+  const result = await mongoose.connection.db.collection('farmers')
+    .findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(req.params.id) },
+      { $set: updateObj },
+      { returnDocument: 'after' }
+    );
 
-  if (!farmer) return next(new AppError("Farmer not found", 404));
+  if (!result.value) return next(new AppError("Farmer not found", 404));
 
   res.status(200).json({
     success: true,
     message: "Profile updated successfully",
-    data: farmer
+    data: result.value
   });
 });
 
 const deleteFarmer = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findById(req.params.id);
+  const result = await mongoose.connection.db.collection('farmers')
+    .deleteOne({ _id: new mongoose.Types.ObjectId(req.params.id) });
 
-  if (!farmer) return next(new AppError("Farmer not found", 404));
-
-  await farmer.deleteOne();
+  if (result.deletedCount === 0) {
+    return next(new AppError("Farmer not found", 404));
+  }
 
   res.status(200).json({
     success: true,
@@ -76,9 +71,6 @@ const deleteFarmer = asyncHandler(async (req, res, next) => {
 });
 
 const getFarmerProducts = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findById(req.params.id);
-  if (!farmer) return next(new AppError("Farmer not found", 404));
-
   const products = await Product.find({ farmerId: req.params.id });
 
   res.status(200).json({
@@ -89,9 +81,6 @@ const getFarmerProducts = asyncHandler(async (req, res, next) => {
 });
 
 const getFarmerOrders = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findById(req.params.id);
-  if (!farmer) return next(new AppError("Farmer not found", 404));
-
   const orders = await Order.find({ farmerId: req.params.id })
     .populate("buyerId", "name email")
     .populate("productId", "name price");
@@ -104,9 +93,6 @@ const getFarmerOrders = asyncHandler(async (req, res, next) => {
 });
 
 const getFarmerAnalytics = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findById(req.params.id);
-  if (!farmer) return next(new AppError("Farmer not found", 404));
-
   const farmerId = new mongoose.Types.ObjectId(req.params.id);
 
   const stats = await Order.aggregate([
@@ -137,10 +123,8 @@ const getFarmerAnalytics = asyncHandler(async (req, res, next) => {
 });
 
 const searchFarmersByLocation = asyncHandler(async (req, res, next) => {
-  const farmers = await User.find({
-    role: "farmer",
-    county: req.query.county
-  }).select("name email county town pickupPoint role");
+  const farmers = await mongoose.connection.db.collection('farmers')
+    .find({ county: req.query.county }).toArray();
 
   res.status(200).json({
     success: true,
@@ -150,10 +134,8 @@ const searchFarmersByLocation = asyncHandler(async (req, res, next) => {
 });
 
 const getFarmersByCounty = asyncHandler(async (req, res, next) => {
-  const farmers = await User.find({
-    role: "farmer",
-    county: req.params.county
-  }).select("name email county town pickupPoint role");
+  const farmers = await mongoose.connection.db.collection('farmers')
+    .find({ county: req.params.county }).toArray();
 
   res.status(200).json({
     success: true,
@@ -163,10 +145,11 @@ const getFarmersByCounty = asyncHandler(async (req, res, next) => {
 });
 
 const getTopRatedFarmers = asyncHandler(async (req, res, next) => {
-  const farmers = await User.find({ role: "farmer" })
-    .sort("-averageRating")
+  const farmers = await mongoose.connection.db.collection('farmers')
+    .find({ isActive: true, isVerified: true })
+    .sort({ averageRating: -1 })
     .limit(10)
-    .select("firstName lastName email county town pickupPoint role averageRating profilePicture");
+    .toArray();
 
   res.status(200).json({
     success: true,
@@ -175,25 +158,25 @@ const getTopRatedFarmers = asyncHandler(async (req, res, next) => {
 });
 
 const updateVerificationStatus = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findByIdAndUpdate(
-    req.params.id,
-    { isVerified: req.body.isVerified },
-    { new: true }
-  );
+  const result = await mongoose.connection.db.collection('farmers')
+    .findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(req.params.id) },
+      { $set: { isVerified: req.body.isVerified } },
+      { returnDocument: 'after' }
+    );
 
-  if (!farmer) return next(new AppError("Farmer not found", 404));
+  if (!result.value) return next(new AppError("Farmer not found", 404));
 
   res.status(200).json({
     success: true,
     message: "Verification updated",
-    data: farmer
+    data: result.value
   });
 });
 
 const getFarmerDashboard = asyncHandler(async (req, res, next) => {
-  const farmer = await User.findById(req.params.id).select(
-    "name email county town pickupPoint role"
-  );
+  const farmer = await mongoose.connection.db.collection('farmers')
+    .findOne({ _id: new mongoose.Types.ObjectId(req.params.id) });
 
   if (!farmer) return next(new AppError("Farmer not found", 404));
 
@@ -210,17 +193,21 @@ const getFarmerDashboard = asyncHandler(async (req, res, next) => {
 const updateLocation = asyncHandler(async (req, res, next) => {
   const { county, town, pickupPoint } = req.body;
 
-  
+  console.log('Update location request:', {
+    farmerId: req.params.id,
+    county,
+    town,
+    pickupPoint
+  });
+
   if (!county || !town) {
     return next(new AppError("County and town are required", 400));
   }
 
-  // Validate county exists
   if (!townCoordinates[county]) {
     return next(new AppError(`Invalid county selected: ${county}`, 400));
   }
 
-  // Validate town exists under that county
   const townData = townCoordinates[county][town];
   if (!townData) {
     return next(
@@ -231,29 +218,38 @@ const updateLocation = asyncHandler(async (req, res, next) => {
     );
   }
 
-  
   const { lat, lng } = townData;
+   console.log('📍 Coordinates:', { lat, lng });
 
-  
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    {
-      county,
-      town,
-      pickupPoint,
-      latitude: lat,
-      longitude: lng,
-      location: { county, town }
-    },
-    { new: true, runValidators: true }
-  );
+  const result = await mongoose.connection.db.collection('farmers')
+    .findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(req.params.id) },
+      {
+        $set: {
+          county,
+          nearestTown: town,
+          pickupPoint,
+          latitude: lat,
+          longitude: lng,
+          location: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        }
+      },
+      { returnDocument: 'after' }
+    );
+    console.log('✅ Update result:', result);
 
-  if (!user) return next(new AppError("Farmer not found", 404));
+  if (!result){
+    console.log('❌ Farmer not found with ID:', req.params.id);
+    return next(new AppError("Farmer not found", 404));
+  }
 
   res.status(200).json({
     success: true,
     message: "Location updated successfully",
-    data: user
+    data: result
   });
 });
 

@@ -137,14 +137,6 @@ const createOrder = asyncHandler(async (req, res, next) => {
     return next(new AppError('Product is no longer available', 400));
   }
 
-  if (product.quantityAvailable < quantity) {
-    return next(new AppError(`Only ${product.quantityAvailable} kg available`, 400));
-  }
-
-  if (!product.farmerId.isActive || !product.farmerId.isVerified) {
-    return next(new AppError('Farmer is not available for orders', 400));
-  }
-
   const unitPrice = product.price;
   const totalAmount = unitPrice * quantity;
 
@@ -161,14 +153,6 @@ const createOrder = asyncHandler(async (req, res, next) => {
   };
 
   const order = await Order.create(orderData);
-
-  product.quantityAvailable -= quantity;
-  if (product.quantityAvailable === 0) {
-    product.stockStatus = 'Out of Stock';
-  } else if (product.quantityAvailable <= 10) {
-    product.stockStatus = 'Low Stock';
-  }
-  await product.save();
 
   await order.populate([
     {
@@ -214,25 +198,6 @@ const updateOrderStatus = asyncHandler(async (req, res, next) => {
 
   if (currentStatus === 'Completed' || currentStatus === 'Cancelled') {
     return next(new AppError('Cannot update completed or cancelled orders', 400));
-  }
-
-  if (status === 'Cancelled') {
-    const product = await Product.findById(order.productId);
-    if (product) {
-      product.quantityAvailable += order.quantity;
-      if (product.quantityAvailable > 0) {
-        product.stockStatus = product.quantityAvailable <= 10 ? 'Low Stock' : 'In Stock';
-      }
-      await product.save();
-    }
-  }
-
-  if (status === 'Delivered' && currentStatus !== 'InTransit') {
-    return next(new AppError('Order must be in transit before marking as delivered', 400));
-  }
-
-  if (status === 'Completed' && currentStatus !== 'Delivered') {
-    return next(new AppError('Order must be delivered before marking as completed', 400));
   }
 
   order.status = status;
@@ -347,19 +312,6 @@ const cancelOrder = asyncHandler(async (req, res, next) => {
 
   if (order.status === 'Completed' || order.status === 'Cancelled') {
     return next(new AppError('Cannot cancel completed or already cancelled orders', 400));
-  }
-
-  if (order.status === 'InTransit' || order.status === 'Delivered') {
-    return next(new AppError('Cannot cancel orders that are in transit or delivered', 400));
-  }
-
-  const product = await Product.findById(order.productId);
-  if (product) {
-    product.quantityAvailable += order.quantity;
-    if (product.quantityAvailable > 0) {
-      product.stockStatus = product.quantityAvailable <= 10 ? 'Low Stock' : 'In Stock';
-    }
-    await product.save();
   }
 
   order.status = 'Cancelled';

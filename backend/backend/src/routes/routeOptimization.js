@@ -1,38 +1,48 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
-const User = require("../models/User");
+const Farmer = require("../models/Farmer");
 const computeOptimalRoute = require("../utils/routeOptimizer");
+
+console.log("🔧 routeOptimization.js - Router created");
 
 const ORS_API_KEY = process.env.ORS_API_KEY;
 
 router.post("/optimize", async (req, res) => {
+  console.log("📍 POST /optimize endpoint HIT!");
+  console.log("📍 Request body:", req.body);
+  
   try {
     const { buyerLat, buyerLng } = req.body;
 
     if (!buyerLat || !buyerLng) {
+      console.log("❌ Missing lat/lng");
       return res.status(400).json({
         success: false,
         message: "Buyer latitude and longitude are required",
       });
     }
 
-    const farmers = await User.find({
-      role: "farmer",
-      latitude: { $ne: null },
-      longitude: { $ne: null },
-    }).select("firstName lastName email latitude longitude county town");
+    console.log("🔍 Searching for farmers with location...");
+    const farmers = await Farmer.find({
+      latitude: { $exists: true, $ne: null },
+      longitude: { $exists: true, $ne: null },
+    });
+    
+    console.log(`✅ Found ${farmers.length} farmers with location`);
 
     if (farmers.length === 0) {
+      console.log("❌ No farmers found!");
       return res.status(404).json({
         success: false,
         message: "No farmers have location data yet",
       });
     }
 
-    // ORS matrix expects [lon, lat]
     const locations = farmers.map((f) => [f.longitude, f.latitude]);
-    locations.push([buyerLng, buyerLat]); // last index = buyer
+    locations.push([buyerLng, buyerLat]);
+
+    console.log("📍 Sending to OpenRouteService:", locations);
 
     const response = await axios.post(
       "https://api.openrouteservice.org/v2/matrix/driving-car",
@@ -61,7 +71,7 @@ router.post("/optimize", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.error("❌ Route optimization error:", err.response?.data || err.message);
     return res.status(500).json({
       success: false,
       message: "Route optimization failed",
@@ -69,5 +79,7 @@ router.post("/optimize", async (req, res) => {
     });
   }
 });
+
+console.log("📍 POST /optimize route registered");
 
 module.exports = router;

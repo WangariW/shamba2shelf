@@ -1,22 +1,27 @@
 /* eslint-disable no-unused-vars */
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState, useContext } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import api from "../../api/axios";
 import { QRCodeCanvas } from "qrcode.react";
+import CartContext from "../../context/CartContext";
 import heroImage from "../../assets/images/coffee-packaging-2.jpg";
 
 export default function ProductDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useContext(CartContext);
+  
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/${id}`);
-        const data = await res.json();
-        console.log("Fetched product:", data);
-        setProduct(data.data);
+        const res = await api.get(`/products/${id}`);
+        console.log("Fetched product:", res.data);
+        setProduct(res.data.data);
       } catch (err) {
         console.error("Error fetching product:", err);
       } finally {
@@ -25,6 +30,24 @@ export default function ProductDetails() {
     };
     fetchProduct();
   }, [id]);
+
+  const handleAddToCart = () => {
+    if (quantity < 1) {
+      alert("Please select a valid quantity.");
+      return;
+    }
+
+    if (product.quantityAvailable && product.quantityAvailable < quantity) {
+      alert(`Only ${product.quantityAvailable} kg available.`);
+      return;
+    }
+
+    // Add to cart
+    addToCart(product, quantity);
+    
+    // Redirect to checkout
+    navigate("/buyer/checkout");
+  };
 
   if (loading) return <p className="text-center mt-20">Loading product details...</p>;
   if (!product) return <p className="text-center mt-20">Product not found.</p>;
@@ -56,7 +79,7 @@ export default function ProductDetails() {
         </div>
       </section>
 
-    
+      {/* Product Details */}
       <section className="py-16 px-6 md:px-20 flex flex-col md:flex-row items-center gap-12 max-w-6xl mx-auto">
         <motion.img
           src={product.images?.[0] || "https://via.placeholder.com/500"}
@@ -87,14 +110,63 @@ export default function ProductDetails() {
             <p><span className="font-semibold">Method:</span> {product.processingMethod}</p>
             <p><span className="font-semibold">Altitude:</span> {product.altitudeGrown}m</p>
             <p><span className="font-semibold">Farmer:</span> {product.farmerId?.firstName} {product.farmerId?.lastName}</p>
+            <p><span className="font-semibold">Available:</span> {product.quantityAvailable || "N/A"} kg</p>
+            <p>
+              <span className="font-semibold">Status:</span>{" "}
+              <span
+                className={`${
+                  product.stockStatus === "In Stock"
+                    ? "text-green-600"
+                    : product.stockStatus === "Low Stock"
+                    ? "text-yellow-600"
+                    : "text-red-600"
+                }`}
+              >
+                {product.stockStatus || "In Stock"}
+              </span>
+            </p>
           </div>
 
           <p className="text-2xl font-semibold text-[#360816] dark:text-amber-300 mt-4">
-            KES {product.price}
+            KES {product.price} <span className="text-base font-normal">/ kg</span>
           </p>
 
+          {/* Quantity Selector */}
+          <div className="border-t border-gray-300 dark:border-gray-700 pt-6 mt-6">
+            <label className="block font-semibold mb-3 text-gray-800 dark:text-gray-200">
+              Select Quantity (kg):
+            </label>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                className="bg-gray-300 dark:bg-gray-700 px-5 py-2 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 transition font-semibold"
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min="1"
+                max={product.quantityAvailable || 100}
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-24 text-center border border-gray-300 dark:border-gray-600 rounded-md py-2 dark:bg-gray-800 dark:text-gray-100 font-semibold text-lg"
+              />
+              <button
+                onClick={() =>
+                  setQuantity((prev) => Math.min(product.quantityAvailable || 100, prev + 1))
+                }
+                className="bg-gray-300 dark:bg-gray-700 px-5 py-2 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 transition font-semibold"
+              >
+                +
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+              Total Price: <strong className="text-[#360816] dark:text-amber-300 text-lg">KES {product.price * quantity}</strong>
+            </p>
+          </div>
+
           {/* QR Code */}
-          <div className="flex flex-col items-center mt-8">
+          <div className="flex flex-col items-center mt-8 border-t border-gray-300 dark:border-gray-700 pt-6">
             {product.qrCode && (
               <img
                 src={product.qrCode}
@@ -107,17 +179,22 @@ export default function ProductDetails() {
             </p>
           </div>
 
-        
+          {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 mt-8">
-            <Link
-              to="/buyer/checkout"
-              className="bg-[#360816] text-white px-8 py-3 rounded-md hover:bg-[#4a0a20] transition"
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stockStatus === "Out of Stock"}
+              className={`flex-1 px-8 py-3 rounded-md font-semibold transition ${
+                product.stockStatus === "Out of Stock"
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  : "bg-[#360816] text-white hover:bg-[#4a0a20] dark:bg-amber-600 dark:hover:bg-amber-700"
+              }`}
             >
-              Proceed to Checkout
-            </Link>
+              {product.stockStatus === "Out of Stock" ? "Out of Stock" : "Add to Cart & Checkout"}
+            </button>
             <Link
               to="/buyer/marketplace"
-              className="border border-[#360816] dark:border-amber-300 text-[#360816] dark:text-amber-300 px-8 py-3 rounded-md hover:bg-[#360816] hover:text-white dark:hover:bg-amber-300 dark:hover:text-gray-900 transition"
+              className="border border-[#360816] dark:border-amber-300 text-[#360816] dark:text-amber-300 px-8 py-3 rounded-md hover:bg-[#360816] hover:text-white dark:hover:bg-amber-300 dark:hover:text-gray-900 transition text-center"
             >
               Back to Marketplace
             </Link>
