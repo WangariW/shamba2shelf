@@ -53,7 +53,7 @@ export default function Marketplace() {
     const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase());
     const matchesCounty = selectedCounty === "All" || p.farmerId?.county === selectedCounty;
     const matchesForm = selectedForm === "All" || p.form === selectedForm;
-    const matchesType = selectedType === "All" || p.variety === selectedType;
+    const matchesType = selectedType === "All" || p.type === selectedType;
     
     return matchesSearch && matchesCounty && matchesForm && matchesType;
   });
@@ -148,7 +148,7 @@ export default function Marketplace() {
                 <img src={p.image || p.images?.[0]} alt={p.name} className="w-full h-56 object-cover hover:opacity-90 transition"/>
                 <div className="p-5 flex flex-col flex-1">
                   <h3 className="text-2xl font-semibold mb-2">{p.name}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Type: {p.variety || p.type}</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Type: {p.type || p.type}</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Form: {p.form}</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">County: {p.farmerId?.county || "N/A"}</p>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-1">Available: {p.quantity || "N/A"} kg</p>

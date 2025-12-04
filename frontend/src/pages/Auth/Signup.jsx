@@ -80,6 +80,7 @@ export default function Signup() {
           Create your account to start trading directly with coffee farmers and buyers.
         </p>
 
+        {/* Role Selector */}
         <div className="flex justify-center mb-6">
           <button
             type="button"
@@ -105,6 +106,7 @@ export default function Signup() {
           </button>
         </div>
 
+        {/* Input Fields */}
         {[
           { name: "firstName", placeholder: "First Name" },
           { name: "lastName", placeholder: "Last Name" },
@@ -119,7 +121,10 @@ export default function Signup() {
               value={formData[field.name]}
               onChange={handleChange}
               required={["firstName", "lastName", "email"].includes(field.name)}
-              className="w-full p-3 border border-gray-300 dark:border-[#3a322b] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] dark:focus:ring-[#c49a6c]"
+              className="w-full p-3 border border-gray-300 dark:border-[#3a322b] 
+                         rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] 
+                         dark:focus:ring-[#c49a6c] text-gray-800 dark:text-gray-100
+                         bg-white dark:bg-gray-700"
             />
             {errors[field.name] && (
               <p className="text-red-500 text-xs mt-1">{errors[field.name]}</p>
@@ -127,6 +132,7 @@ export default function Signup() {
           </div>
         ))}
 
+        {/* Password Field */}
         <div className="relative mb-6">
           <input
             type={showPassword ? "text" : "password"}
@@ -135,7 +141,10 @@ export default function Signup() {
             value={formData.password}
             onChange={handleChange}
             required
-            className="w-full p-3 border border-gray-300 dark:border-[#3a322b] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] dark:focus:ring-[#c49a6c]"
+            className="w-full p-3 border border-gray-300 dark:border-[#3a322b] 
+                       rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] 
+                       dark:focus:ring-[#c49a6c] text-gray-800 dark:text-gray-100
+                       bg-white dark:bg-gray-700"
           />
           <span
             onClick={() => setShowPassword(!showPassword)}
@@ -148,6 +157,7 @@ export default function Signup() {
           )}
         </div>
 
+        {/* Errors & Messages */}
         {errors.general && (
           <p className="text-red-500 text-sm mb-4 text-center">
             {errors.general}
@@ -158,6 +168,7 @@ export default function Signup() {
           <p className="text-green-600 text-sm mb-4 text-center">{success}</p>
         )}
 
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}

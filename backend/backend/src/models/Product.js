@@ -23,6 +23,24 @@ const productSchema = new mongoose.Schema({
     }
   },
 
+  type: {
+    type: String,
+    required: [true, 'Coffee type is required'],
+    enum: {
+      values: ['Arabica', 'Robusta', 'Blend'],
+      message: 'Coffee type must be Arabica, Robusta, or Blend'
+    }
+  },
+
+  form: {
+    type: String,
+    required: [true, 'Coffee form is required'],
+    enum: {
+      values: ['Beans', 'Ground Coffee'],
+      message: 'Coffee form must be Beans or Ground Coffee'
+    }
+  },
+
   roastLevel: {
     type: String,
     required: [true, 'Roast level is required'],

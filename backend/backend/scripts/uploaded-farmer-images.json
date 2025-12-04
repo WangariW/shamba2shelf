@@ -1,0 +1,50 @@
+[
+  {
+    "farmerEmail": "ndutafarms@gmail.com",
+    "fileName": "everlyne-nduta.webp",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862182/shamba2shelf-farmers/everlyne-nduta.webp",
+    "publicId": "shamba2shelf-farmers/everlyne-nduta"
+  },
+  {
+    "farmerEmail": "jwachira@gikira.com",
+    "fileName": "jeff-wachira.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862183/shamba2shelf-farmers/jeff-wachira.jpg",
+    "publicId": "shamba2shelf-farmers/jeff-wachira"
+  },
+  {
+    "farmerEmail": "john.mwangi@mkulima.com",
+    "fileName": "john-mwangi.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862184/shamba2shelf-farmers/john-mwangi.jpg",
+    "publicId": "shamba2shelf-farmers/john-mwangi"
+  },
+  {
+    "farmerEmail": "kmfarm@gmail.com",
+    "fileName": "kamau-mwangi.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862185/shamba2shelf-farmers/kamau-mwangi.jpg",
+    "publicId": "shamba2shelf-farmers/kamau-mwangi"
+  },
+  {
+    "farmerEmail": "nduta.coffees@hotmail.com",
+    "fileName": "nduta-munini.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862186/shamba2shelf-farmers/nduta-munini.jpg",
+    "publicId": "shamba2shelf-farmers/nduta-munini"
+  },
+  {
+    "farmerEmail": "rwangome@yahoo.com",
+    "fileName": "robin-wangome.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862188/shamba2shelf-farmers/robin-wangome.jpg",
+    "publicId": "shamba2shelf-farmers/robin-wangome"
+  },
+  {
+    "farmerEmail": "skariuki@gmail.com",
+    "fileName": "samuel-kariuki.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862189/shamba2shelf-farmers/samuel-kariuki.jpg",
+    "publicId": "shamba2shelf-farmers/samuel-kariuki"
+  },
+  {
+    "farmerEmail": "agrikisim@yahoo.com",
+    "fileName": "wanjiru-kisim.jpg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764862190/shamba2shelf-farmers/wanjiru-kisim.jpg",
+    "publicId": "shamba2shelf-farmers/wanjiru-kisim"
+  }
+]

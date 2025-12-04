@@ -18,7 +18,7 @@
     "publicId": "kofisafi-products/blend-kiambu"
   },
   {
-    "productName": "Arabica Murang'a Ground",
+    "productName": "Arabica Muranga Ground",
     "fileName": "arabica-muranga.jpg",
     "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344385/kofisafi-products/arabica-muranga.jpg",
     "publicId": "kofisafi-products/arabica-muranga"
@@ -52,5 +52,47 @@
     "fileName": "kent-meru-classic.jpeg",
     "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764344392/kofisafi-products/kent-meru-classic.jpg",
     "publicId": "kofisafi-products/kent-meru-classic"
+  },
+  {
+    "productName": "Arabica Embu Reserve",
+    "fileName": "arabica-embu.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866671/kofisafi-products/arabica-embu.jpg",
+    "publicId": "kofisafi-products/arabica-embu"
+  },
+  {
+    "productName": "Arabica K7 Muranga",
+    "fileName": "arabica-k7.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866672/kofisafi-products/arabica-k7.jpg",
+    "publicId": "kofisafi-products/arabica-k7"
+  },
+  {
+    "productName": "Arabica Muranga Ground",
+    "fileName": "arabica-muranga.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866673/kofisafi-products/arabica-muranga.jpg",
+    "publicId": "kofisafi-products/arabica-muranga"
+  },
+  {
+    "productName": "Batian Nyeri Espresso",
+    "fileName": "batian-espresso.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866674/kofisafi-products/batian-espresso.jpg",
+    "publicId": "kofisafi-products/batian-espresso"
+  },
+  {
+    "productName": "Batian Nyeri Premium",
+    "fileName": "batian-nyeri.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866675/kofisafi-products/batian-nyeri.jpg",
+    "publicId": "kofisafi-products/batian-nyeri"
+  },
+  {
+    "productName": "Ruiru 11 Kiambu Estate",
+    "fileName": "ruiru-11-kiambu.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866677/kofisafi-products/ruiru-11-kiambu.jpg",
+    "publicId": "kofisafi-products/ruiru-11-kiambu"
+  },
+  {
+    "productName": "SL34 Kirinyaga Supreme",
+    "fileName": "sl34.jpeg",
+    "url": "https://res.cloudinary.com/dcpe92ixw/image/upload/v1764866678/kofisafi-products/sl34.jpg",
+    "publicId": "kofisafi-products/sl34"
   }
 ]

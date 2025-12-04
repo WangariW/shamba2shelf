@@ -29,14 +29,12 @@ export default function Login() {
       const response = await api.post("/auth/login", { ...credentials, role });
       const { accessToken, refreshToken, user } = response.data;
 
-
       console.log('✅ Full response:', response.data);
-      
+
       if (accessToken) localStorage.setItem("accessToken", accessToken);
       if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
       if (user) {
         const userWithRole = { ...user, role: user.role || role };
-
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("userId", user._id)
         setUser(userWithRole);
@@ -47,17 +45,13 @@ export default function Login() {
 
       if (role === "farmer"){
         navigate("/farmer/dashboard", { replace: true });
-      }else if (role === "buyer"){
+      } else if (role === "buyer"){
         navigate("/buyer/dashboard", { replace: true });
-      }else{
+      } else {
         navigate("/", { replace: true });
       }
     } catch (err) {
       console.error("Login error:", err);
-      console.error("Login error:", err);
-      console.error("Error response:", err.response?.data);
-      
-
       setError(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
@@ -112,7 +106,10 @@ export default function Login() {
             value={credentials.email}
             onChange={handleChange}
             required
-            className="w-full p-3 border border-gray-300 dark:border-[#3a322b] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] dark:focus:ring-[#c49a6c]"
+            className="w-full p-3 border border-gray-300 dark:border-[#3a322b] 
+                       rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] 
+                       dark:focus:ring-[#c49a6c] text-gray-800 dark:text-gray-100
+                       bg-white dark:bg-gray-700"
           />
         </div>
 
@@ -125,7 +122,10 @@ export default function Login() {
             value={credentials.password}
             onChange={handleChange}
             required
-            className="w-full p-3 border border-gray-300 dark:border-[#3a322b] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] dark:focus:ring-[#c49a6c]"
+            className="w-full p-3 border border-gray-300 dark:border-[#3a322b] 
+                       rounded-md focus:outline-none focus:ring-2 focus:ring-[#3B1F0E] 
+                       dark:focus:ring-[#c49a6c] text-gray-800 dark:text-gray-100
+                       bg-white dark:bg-gray-700"
           />
           <span
             onClick={() => setShowPassword(!showPassword)}
