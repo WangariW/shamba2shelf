@@ -15,27 +15,23 @@ export default function FarmerProfile() {
 
   const [farmer, setFarmer] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  const farmerId = localStorage.getItem("userId"); 
 
-  
+  const farmerId = localStorage.getItem("userId");
+
   useEffect(() => {
     const loadFarmerProfile = async () => {
       try {
         const res = await api.get(`/farmers/${farmerId}`);
         const farmerData = res.data?.data?.farmer;
-        
+
         if (farmerData) {
           setFarmer(farmerData);
-          
-          // Pre-fill location if exists
-          if (farmerData.county || farmerData.nearestTown || farmerData.pickupPoint) {
-            setLocation({
-              county: farmerData.county || "",
-              town: farmerData.nearestTown || "",
-              pickupPoint: farmerData.pickupPoint || ""
-            });
-          }
+
+          setLocation({
+            county: farmerData.county || "",
+            town: farmerData.nearestTown || "",
+            pickupPoint: farmerData.pickupPoint || "",
+          });
         }
       } catch (error) {
         console.error("Failed to load farmer profile:", error);
@@ -59,10 +55,8 @@ export default function FarmerProfile() {
       const res = await api.put(`/farmers/${farmerId}/location`, location);
       console.log("Backend response:", res.data);
 
-
       alert("Farmer location saved successfully!");
       navigate("/farmer/dashboard");
-      
     } catch (error) {
       console.error("Error saving farmer location:", error);
       alert(error.response?.data?.message || "Failed to save location");
@@ -70,14 +64,13 @@ export default function FarmerProfile() {
       setLoading(false);
     }
   };
-  if (!farmerId) {
-    return <Navigate to="/login" replace />;
-  }
+
+  if (!farmerId) return <Navigate to="/login" replace />;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Loading profile...</p>
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-[#1B1B1B]">
+        <p className="text-gray-700 dark:text-gray-300">Loading profile...</p>
       </div>
     );
   }
@@ -87,7 +80,7 @@ export default function FarmerProfile() {
       <h1 className="text-2xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
         Farmer Profile
       </h1>
-   
+
       {farmer && (
         <p className="text-gray-600 dark:text-gray-400 mb-6">
           {farmer.name} • {farmer.email}
@@ -99,13 +92,15 @@ export default function FarmerProfile() {
           <h2 className="text-lg font-medium mb-4 text-gray-800 dark:text-gray-100">
             Location
           </h2>
+
+          {/* FIXED DARK MODE INPUT COLORS */}
           <FarmerLocationForm value={location} onChange={setLocation} />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className={`bg-green-700 text-white px-4 py-2 rounded w-full ${
+          className={`bg-green-700 text-white px-4 py-2 rounded w-full transition ${
             loading ? "opacity-50 cursor-not-allowed" : "hover:bg-green-800"
           }`}
         >

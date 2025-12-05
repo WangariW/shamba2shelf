@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useRef, useEffect } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import ChatBotWidget from "../../components/ChatBotWidget";
 import NotificationsPanel from "../../components/NotificationsPanel";
 import AddProductModal from "../../components/AddProductModal";
@@ -11,9 +11,12 @@ import api from "../../api/axios.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Search, User } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/useAuth";
 
 export default function FarmerDashboard() {
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const [farmer, setFarmer] = useState(null);
   const [farmerLocation, setFarmerLocation] = useState(null);
@@ -36,8 +39,7 @@ export default function FarmerDashboard() {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const farmerId = localStorage.getItem("userId") ;
-
+  const farmerId = localStorage.getItem("userId");
 
   useEffect(() => {
     async function loadProfile() {
@@ -104,7 +106,6 @@ export default function FarmerDashboard() {
     }
   };
 
-
   useEffect(() => {
     const closeDropdown = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -137,6 +138,7 @@ export default function FarmerDashboard() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#1B1B1B] text-gray-800 dark:text-gray-200 py-10 px-6 md:px-16">
 
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-10">
         <div className="text-center w-full">
           <motion.h1
@@ -157,7 +159,7 @@ export default function FarmerDashboard() {
                 Your Pickup Location
               </h2>
               <p><strong>County:</strong> {farmerLocation.county}</p>
-              <p><strong>Town:</strong> {farmerLocation.nearestTown}</p>
+              <p><strong>Town:</strong> {farmerLocation.town}</p>
               <p><strong>Pickup Point:</strong> {farmerLocation.pickupPoint}</p>
             </div>
           )}
@@ -193,14 +195,30 @@ export default function FarmerDashboard() {
 
             {profileOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#252525] shadow-lg rounded-lg py-2">
-                <Link to="/farmer/profile" className="block px-4 py-2">Profile</Link>
-                <Link to="/logout" className="block px-4 py-2">Logout</Link>
+                <Link
+                  to="/farmer/profile"
+                  className="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-[#333]"
+                >
+                  Profile
+                </Link>
+
+                {/* FIXED LOGOUT */}
+                <button
+                  onClick={() => {
+                    logout();
+                    window.location.href = "/login";
+                  }}
+                  className="block px-4 py-2 w-full text-left hover:bg-gray-200 dark:hover:bg-[#333]"
+                >
+                  Logout
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
 
+      {/* METRICS */}
       <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
         <MetricBox title="County" value={farmerLocation?.county || "-"} />
         <MetricBox title="Town" value={farmerLocation?.town || "-"} />
@@ -208,6 +226,7 @@ export default function FarmerDashboard() {
         <MetricBox title="Role" value={farmer?.role || "-"} />
       </div>
 
+      {/* PRODUCTS */}
       <ProductSection
         products={filteredProducts}
         searchTerm={searchTerm}
@@ -250,6 +269,8 @@ export default function FarmerDashboard() {
   );
 }
 
+/* ---------------- COMPONENTS ---------------- */
+
 function MetricBox({ title, value }) {
   return (
     <motion.div className="bg-gray-50 dark:bg-[#252525] p-6 rounded-xl shadow-lg text-center">
@@ -277,12 +298,14 @@ function ProductSection({
       <div className="flex gap-4 mb-6 items-center">
         <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#252525] rounded-lg px-4 py-2 w-full md:w-1/3">
           <Search className="w-5 h-5 text-gray-500" />
+
+          {/* FIXED DARK MODE INPUT */}
           <input
             type="text"
             placeholder="Search product…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent outline-none w-full"
+            className="bg-transparent outline-none w-full text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
 
