@@ -11,10 +11,8 @@ const path = require('path');
 const connectDB = require('./src/config/database');
 const { errorHandler, notFound } = require('./src/middleware/errorMiddleware');
 
-// Load Models
 require('./src/models/Farmer');
 
-// Routes
 const authRoutes = require('./src/routes/authRoutes');
 const farmerRoutes = require('./src/routes/farmers');
 const productRoutes = require('./src/routes/products');
@@ -38,35 +36,40 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
+    const isLocalhost =
+      origin.startsWith("http://localhost") ||
+      origin.startsWith("https://localhost") ||
+      origin.startsWith("http://127.0.0.1") ||
+      origin.startsWith("https://127.0.0.1");
 
-if (process.env.FRONTEND_URL) {
-  process.env.FRONTEND_URL.split(',').forEach(url => {
-    allowedOrigins.push(url.trim());
-  });
-}
+    const isLAN =
+      /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+      /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin);
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); 
+    const isVercel = origin.includes(".vercel.app");
 
-      if (allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
-        return callback(null, true);
-      }
+    const isEnvAllowed =
+      process.env.FRONTEND_URL &&
+      process.env.FRONTEND_URL.split(",")
+        .map((u) => u.trim())
+        .includes(origin);
 
-      console.log('❌ CORS blocked:', origin);
-      return callback(new Error('CORS: Origin not allowed'));
-    },
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
+    if (isLocalhost || isLAN || isVercel || isEnvAllowed) {
+      return callback(null, true);
+    }
 
+    console.log("❌ CORS blocked:", origin);
+    return callback(new Error("CORS: Origin not allowed"));
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -86,7 +89,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/products', productRoutes);
@@ -96,15 +98,11 @@ app.use('/api/v1/logistics', logisticsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/route', routeOptimizationRoutes);
 
-
 app.use(notFound);
 app.use(errorHandler);
 
-
 const PORT = process.env.PORT || 5000;
-const isProduction =
-  process.env.NODE_ENV === 'production' ||
-  process.env.RAILWAY_ENVIRONMENT;
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT;
 
 let server;
 
@@ -122,16 +120,15 @@ if (isProduction) {
     server = https.createServer(httpsOptions, app);
 
     server.listen(PORT, () => {
-      console.log(`🔐 Local HTTPS server running on port ${PORT}`);
+      console.log(` Local HTTPS server running on port ${PORT}`);
     });
   } catch (err) {
     console.log('⚠️ HTTPS cert missing → using HTTP instead');
     server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🌐 Local HTTP server running on port ${PORT}`);
+      console.log(`Local HTTP server running on port ${PORT}`);
     });
   }
 }
-
 
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err);
@@ -144,7 +141,7 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('SIGTERM', () => {
-  console.log('⏹️ SIGTERM → shutting down');
+  console.log(' SIGTERM → shutting down');
   server.close(() => console.log('✅ Server stopped'));
 });
 
