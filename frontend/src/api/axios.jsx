@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BACKEND_URL = "https://10.0.9.91:5000";  // Hardcoded
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://shamba2shelf-production.up.railway.app";
 
 const api = axios.create({
   baseURL: `${BACKEND_URL}/api`,
