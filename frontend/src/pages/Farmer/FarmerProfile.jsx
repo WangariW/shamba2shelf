@@ -6,11 +6,10 @@ import api from "../../api/axios";
 export default function FarmerProfile() {
   const navigate = useNavigate();
 
-  const [location, setLocation] = useState(() => {
-    const saved = localStorage.getItem("farmerLocation");
-    return saved
-      ? JSON.parse(saved)
-      : { county: "", town: "", pickupPoint: "" };
+  const [location, setLocation] = useState({
+    county: "",
+    town: "",
+    pickupPoint: "",
   });
 
   const [farmer, setFarmer] = useState(null);
@@ -42,10 +41,6 @@ export default function FarmerProfile() {
 
     loadFarmerProfile();
   }, [farmerId]);
-
-  useEffect(() => {
-    localStorage.setItem("farmerLocation", JSON.stringify(location));
-  }, [location]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -93,7 +88,7 @@ export default function FarmerProfile() {
             Location
           </h2>
 
-          {/* FIXED DARK MODE INPUT COLORS */}
+          {/* DARK MODE FIXES ARE INSIDE FarmerLocationForm.jsx */}
           <FarmerLocationForm value={location} onChange={setLocation} />
         </div>
 

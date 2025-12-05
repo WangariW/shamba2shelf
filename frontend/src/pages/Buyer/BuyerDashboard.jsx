@@ -283,7 +283,10 @@ export default function BuyerDashboard() {
           </div>
 
           <button
-            onClick={logout}
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
             className="px-4 py-2 bg-[#3B1F0E] dark:bg-amber-600 text-white rounded-lg hover:opacity-90 transition"
           >
             Logout

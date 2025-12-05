@@ -17,7 +17,7 @@ export default function FarmerLocationForm({ value, onChange }) {
     setForm((prev) => ({
       ...prev,
       county,
-      town: "", 
+      town: "", // reset town when county changes
     }));
   };
 
@@ -30,9 +30,15 @@ export default function FarmerLocationForm({ value, onChange }) {
 
       {/* COUNTY */}
       <div>
-        <label className="block text-sm font-medium mb-1">County</label>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+          County
+        </label>
+
         <select
-          className="border rounded px-3 py-2 w-full"
+          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full
+                     bg-white dark:bg-[#2a2520]
+                     text-gray-800 dark:text-gray-200
+                     placeholder-gray-500 dark:placeholder-gray-400"
           value={form.county}
           onChange={handleCountyChange}
         >
@@ -47,9 +53,14 @@ export default function FarmerLocationForm({ value, onChange }) {
 
       {/* TOWN */}
       <div>
-        <label className="block text-sm font-medium mb-1">Town</label>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+          Town
+        </label>
+
         <select
-          className="border rounded px-3 py-2 w-full"
+          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full
+                     bg-white dark:bg-[#2a2520]
+                     text-gray-800 dark:text-gray-200"
           value={form.town}
           onChange={(e) => handleChange("town", e.target.value)}
           disabled={!form.county}
@@ -64,23 +75,27 @@ export default function FarmerLocationForm({ value, onChange }) {
         </select>
       </div>
 
-      {/*Pickup Point */}
+      {/* PICKUP POINT */}
       <div>
         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
           Pickup Point (Optional)
-          </label>
+        </label>
+
         <input
           type="text"
-          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full bg-white dark:bg-[#2a2520] text-gray-800 dark:text-gray-200"
+          className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 w-full
+                     bg-white dark:bg-[#2a2520]
+                     text-gray-800 dark:text-gray-200
+                     placeholder-gray-500 dark:placeholder-gray-400"
           value={form.pickupPoint}
           onChange={(e) => handleChange("pickupPoint", e.target.value)}
           placeholder="Enter pickup point"
         />
-        <p className="text-xs text-gray-500 mt-1">
+
+        <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
           Provide a nearby landmark or specific location for easier pickup.
         </p>
       </div>
-
     </div>
   );
 }
