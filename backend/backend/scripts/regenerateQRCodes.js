@@ -1,8 +1,7 @@
-require("dotenv").config();
+require("dotenv").config({ path: "./.env" });
 const mongoose = require("mongoose");
+const QRCode = require("qrcode");
 const Product = require("../src/models/Product");
-const Farmer = require("../src/models/Farmer");
-const QRCodeService = require("../src/services/qrCodeService");
 
 async function run() {
   try {
@@ -10,40 +9,36 @@ async function run() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("✅ Connected\n");
 
-    const FRONTEND_URL = process.env.FRONTEND_PUBLIC_URL;
-    if (!FRONTEND_URL) throw new Error("FRONTEND_PUBLIC_URL is missing.");
+    const FRONTEND_URL = process.env.FRONTEND_URL;
+    if (!FRONTEND_URL) {
+      throw new Error("FRONTEND_URL is missing from .env");
+    }
 
-    console.log("🔍 Fetching all products...");
-    const products = await Product.find();
+    console.log("Using FRONTEND_URL:", FRONTEND_URL);
 
-    let count = 0;
+    const products = await Product.find({});
+    console.log(`Found ${products.length} products.\n`);
 
     for (const product of products) {
-      const farmer = await Farmer.findById(product.farmerId);
-      if (!farmer) {
-        console.log(`⚠️ Skipping product (farmer missing): ${product.name}`);
-        continue;
-      }
+      const url = `${FRONTEND_URL}/trace/${product._id}`;
+      
+      const qrImage = await QRCode.toDataURL(url, {
+        width: 256,
+        margin: 1,
+        color: { dark: "#000", light: "#fff" },
+      });
 
-      const qrData = await QRCodeService.generateProductQR(product, farmer);
-
-      product.qrCode = qrData.qrCodeImage;
-      product.detailedQr = qrData.detailedQrData;
-      product.verificationUrl = qrData.verificationUrl;
-      product.traceabilityId = qrData.traceabilityId;
-
+      product.qrCode = qrImage;
       await product.save();
 
       console.log(`✅ Updated QR for: ${product.name}`);
-      count++;
+      console.log(`   URL: ${url}\n`);
     }
 
-    console.log("\n🎉 QR regeneration complete!");
-    console.log(`📦 Total updated products: ${count}`);
-
+    console.log("🎉 ALL QR CODES UPDATED SUCCESSFULLY!");
     process.exit(0);
   } catch (err) {
-    console.error("❌ QR regeneration failed:", err);
+    console.error("❌ Error:", err);
     process.exit(1);
   }
 }

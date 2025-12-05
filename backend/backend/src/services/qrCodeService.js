@@ -4,7 +4,7 @@ const AppError = require('../utils/AppError');
 
 class QRCodeService {
   constructor() {
-    this.baseUrl = process.env.FRONTEND_PUBLIC_URL;
+    this.baseUrl = process.env.FRONTEND_URL;
     this.encryptionKey = process.env.QR_ENCRYPTION_KEY || 'shamba2shelf-qr-secret-key-2024';
   }
 
