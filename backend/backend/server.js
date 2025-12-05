@@ -40,16 +40,25 @@ const allowedOrigins = [
   'http://10.0.9.91:5173',
   'https://10.0.9.91:5173',
   'https://localhost:5173',
-  process.env.FRONTEND_URL,
 ];
+
+if (process.env.FRONTEND_URL) {
+  if (process.env.FRONTEND_URL.includes(',')) {
+    allowedOrigins.push(...process.env.FRONTEND_URL.split(',').map(url => url.trim()));
+  } else {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
+}
 
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
+      
+      if (allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
         return callback(null, true);
       } else {
+        console.log('❌ CORS blocked origin:', origin);
         return callback(new Error('CORS policy: Origin not allowed'));
       }
     },
