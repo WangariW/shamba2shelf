@@ -11,8 +11,10 @@ const path = require('path');
 const connectDB = require('./src/config/database');
 const { errorHandler, notFound } = require('./src/middleware/errorMiddleware');
 
+// Load Models
 require('./src/models/Farmer');
 
+// Routes
 const authRoutes = require('./src/routes/authRoutes');
 const farmerRoutes = require('./src/routes/farmers');
 const productRoutes = require('./src/routes/products');
@@ -21,7 +23,6 @@ const buyerRoutes = require('./src/routes/buyers');
 const logisticsRoutes = require('./src/routes/logistics');
 const analyticsRoutes = require('./src/routes/analytics');
 const routeOptimizationRoutes = require("./src/routes/routeOptimization");
-console.log("Route Optimization Routes loaded");
 
 dotenv.config();
 
@@ -31,46 +32,41 @@ if (!process.env.SKIP_DB_CONNECTION) {
   connectDB();
 }
 
-app.use(helmet()); 
+app.use(helmet());
+app.use(morgan('combined'));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:5174',
   'http://localhost:3000',
-  'http://10.0.9.91:5173',
-  'https://10.0.9.91:5173',
-  'https://localhost:5173',
 ];
 
 if (process.env.FRONTEND_URL) {
-  if (process.env.FRONTEND_URL.includes(',')) {
-    allowedOrigins.push(...process.env.FRONTEND_URL.split(',').map(url => url.trim()));
-  } else {
-    allowedOrigins.push(process.env.FRONTEND_URL);
-  }
+  process.env.FRONTEND_URL.split(',').forEach(url => {
+    allowedOrigins.push(url.trim());
+  });
 }
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      
+      if (!origin) return callback(null, true); 
+
       if (allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
         return callback(null, true);
-      } else {
-        console.log('❌ CORS blocked origin:', origin);
-        return callback(new Error('CORS policy: Origin not allowed'));
       }
+
+      console.log('❌ CORS blocked:', origin);
+      return callback(new Error('CORS: Origin not allowed'));
     },
     credentials: true,
     optionsSuccessStatus: 200,
   })
 );
 
-app.use(morgan('combined')); 
-app.use(express.json({ limit: '10mb' })); 
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser()); 
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -83,14 +79,13 @@ app.get('/api/health', (req, res) => {
 
 app.get('/', (req, res) => {
   res.send(`
-    <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-      <h1> Welcome to Shamba2Shelf API</h1>
-      <p>Your backend server is running successfully.</p>
-      <p>Visit <code>/api/health</code> to check server status.</p>
-      <p>Environment: <strong>${process.env.NODE_ENV || 'development'}</strong></p>
-    </div>
+    <h1>Shamba2Shelf API</h1>
+    <p>Status: Running</p>
+    <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+    <p>Check <code>/api/health</code></p>
   `);
 });
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
@@ -99,38 +94,58 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/buyers', buyerRoutes);
 app.use('/api/v1/logistics', logisticsRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
-app.use("/api/route", routeOptimizationRoutes);
-console.log("✅ Mounted at /api/route");
+app.use('/api/route', routeOptimizationRoutes);
+
 
 app.use(notFound);
 app.use(errorHandler);
 
+
 const PORT = process.env.PORT || 5000;
+const isProduction =
+  process.env.NODE_ENV === 'production' ||
+  process.env.RAILWAY_ENVIRONMENT;
 
-const httpsOptions = {
-  key: fs.readFileSync(path.resolve(__dirname, 'localhost+2-key.pem')),
-  cert: fs.readFileSync(path.resolve(__dirname, 'localhost+2.pem'))
-};
+let server;
 
-const server = https.createServer(httpsOptions, app);
+if (isProduction) {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Production Server running on port ${PORT}`);
+  });
+} else {
+  try {
+    const httpsOptions = {
+      key: fs.readFileSync(path.join(__dirname, 'localhost+2-key.pem')),
+      cert: fs.readFileSync(path.join(__dirname, 'localhost+2.pem')),
+    };
 
-server.listen(PORT, () => {
-  console.log(`🚀 HTTPS Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+    server = https.createServer(httpsOptions, app);
 
-process.on('unhandledRejection', (err, promise) => {
-  console.log(` Error: ${err.message}`);
+    server.listen(PORT, () => {
+      console.log(`🔐 Local HTTPS server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.log('⚠️ HTTPS cert missing → using HTTP instead');
+    server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🌐 Local HTTP server running on port ${PORT}`);
+    });
+  }
+}
+
+
+process.on('unhandledRejection', (err) => {
+  console.error('❌ Unhandled Rejection:', err);
   server.close(() => process.exit(1));
 });
 
 process.on('uncaughtException', (err) => {
-  console.log(` Uncaught Exception: ${err.message}`);
+  console.error('❌ Uncaught Exception:', err);
   process.exit(1);
 });
 
 process.on('SIGTERM', () => {
-  console.log(' SIGTERM received, shutting down gracefully');
-  server.close(() => console.log(' Process terminated'));
+  console.log('⏹️ SIGTERM → shutting down');
+  server.close(() => console.log('✅ Server stopped'));
 });
 
 module.exports = app;
