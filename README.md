@@ -84,16 +84,37 @@ Shamba2Shelf/
 ## 📸 Screenshots
 
 ### Homepage
-![Homepage](screenshots/homepage.png)
+![Homepage](hp1.png)
+
+![Homepage](hp2.png)
+
+![Homepage](hp3.png)
+
+### Signup
+![Signup](signup1.png)
+
+![Signup](signup2.png)
+
+
+### Login
+![Login](login1.png)
+
+![Login](login2.png)
+
 
 ### Marketplace
-![Marketplace](screenshots/marketplace.png)
+![Marketplace](mp1.png)
+
+![Marketplace](mp2.png)
+
+![Marketplace](mp3.png)
+
+![Marketplace](mp4.png)
 
 ### Farmer Dashboard
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](farmerdb.png)
 
-### Maps & Location Features
-![Maps](screenshots/maps.png)
+
 
 ---
 
